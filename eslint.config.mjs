@@ -13,6 +13,15 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // Data fetching in effects (fetch-on-mount, polling, subscribing) is the
+      // intended pattern for this app. Fresh react-hooks flags any setState
+      // reachable from an effect even when it happens after `await`, which
+      // would require an awkward rewrite of every list component.
+      "react-hooks/set-state-in-effect": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

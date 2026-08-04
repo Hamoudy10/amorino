@@ -1,0 +1,76 @@
+import { NextRequest } from "next/server";
+import { db } from "@/db";
+import { users, orders } from "@/db/schema";
+import { asc, eq, sql } from "drizzle-orm";
+import { ok, serverError, unauthorized, fail } from "@/lib/api";
+import { requireRole, upsertUserFromClerk, setUserRole } from "@/lib/auth";
+import { z } from "zod";
+
+const createRiderSchema = z.object({
+  clerkId: z.string().min(1),
+  phone: z.string().min(10),
+  name: z.string().min(2).optional(),
+});
+
+export async function GET() {
+  try {
+    const user = await requireRole("owner", "admin");
+    if (!user) return unauthorized();
+
+    const riders = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        phone: users.phone,
+        email: users.email,
+        clerkId: users.clerkId,
+        role: users.role,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.role, "rider"))
+      .orderBy(asc(users.createdAt));
+
+    // Attach active delivery counts
+    const stats = await db
+      .select({ riderId: orders.riderId, count: sql<number>`count(*)` })
+      .from(orders)
+      .where(eq(orders.status, "out_for_delivery"))
+      .groupBy(orders.riderId);
+
+    const countByRider = new Map(stats.map((s) => [s.riderId, s.count]));
+
+    return ok(
+      riders.map((r) => ({
+        ...r,
+        activeDeliveries: countByRider.get(r.id) ?? 0,
+      }))
+    );
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await requireRole("owner", "admin");
+    if (!user) return unauthorized();
+
+    const body = await req.json().catch(() => null);
+    const parsed = createRiderSchema.safeParse(body);
+    if (!parsed.success) return fail("Invalid rider data", 400, parsed.error.flatten());
+
+    await upsertUserFromClerk({
+      clerkId: parsed.data.clerkId,
+      phone: parsed.data.phone,
+      name: parsed.data.name ?? null,
+      role: "rider",
+    });
+    await setUserRole(parsed.data.clerkId, "rider");
+
+    return ok({ created: true }, 201);
+  } catch (err) {
+    return serverError(err);
+  }
+}
