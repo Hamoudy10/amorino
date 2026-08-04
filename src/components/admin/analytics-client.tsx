@@ -86,7 +86,7 @@ export function AnalyticsClient() {
         {[
           { label: `Orders (${data.days}d)`, value: String(data.summary.totalOrders) },
           { label: `Revenue (${data.days}d)`, value: formatKES(data.summary.revenue) },
-          { label: "Average rating", value: data.rating.count > 0 ? `${data.rating.average.toFixed(1)} ★ (${data.rating.count})` : "No reviews" },
+          { label: "Average rating", value: data.rating.count > 0 ? `${data.rating.average.toFixed(1)} / 5 (${data.rating.count} reviews)` : "No reviews" },
           { label: "Repeat rate", value: `${data.repeatRate}%` },
         ].map((s) => (
           <Card key={s.label}>

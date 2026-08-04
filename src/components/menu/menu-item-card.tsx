@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Flame, Leaf, Clock, Plus } from "lucide-react";
+import { Flame, Leaf, Clock, Plus, UtensilsCrossed } from "lucide-react";
 import { useCart } from "@/components/providers/cart-provider";
 import { Badge } from "@/components/ui/badge";
 import { formatKES } from "@/lib/utils";
@@ -29,7 +29,7 @@ export function MenuItemCard({ item, index = 0 }: { item: MenuItem; index?: numb
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-100 to-teal-100">
-            <span className="text-4xl">🍽️</span>
+            <UtensilsCrossed className="h-10 w-10 text-primary/50" />
           </div>
         )}
         <div className="absolute left-2 top-2 flex flex-wrap gap-1">

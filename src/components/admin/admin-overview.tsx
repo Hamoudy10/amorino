@@ -155,7 +155,7 @@ export function AdminOverview() {
             <CardContent className="space-y-3">
               {complaints.length === 0 && (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  No open complaints. 🎉
+                  No open complaints.
                 </p>
               )}
               {complaints.slice(0, 4).map((c) => (
@@ -190,9 +190,13 @@ export function AdminOverview() {
               {reviews.slice(0, 3).map((r) => (
                 <div key={r.id} className="rounded-lg border p-3 text-sm">
                   <div className="mb-1 flex items-center justify-between">
-                    <span className="font-medium">
-                      {"★".repeat(r.rating)}
-                      <span className="text-muted-foreground">{"★".repeat(5 - r.rating)}</span>
+                    <span className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-3.5 w-3.5 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-muted"}`}
+                        />
+                      ))}
                     </span>
                     <span className="text-xs text-muted-foreground">{r.orderNumber ?? "—"}</span>
                   </div>

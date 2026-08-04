@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
+import { ThumbsUp, ThumbsDown, MessageSquare, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -95,10 +95,14 @@ export function ReviewModerator() {
                       {review.isVisible ? "Visible" : "Hidden"}
                     </Badge>
                   </div>
-                  <p className="mt-1 text-sm text-amber-600">
-                    {"★".repeat(review.rating)}
-                    <span className="text-muted-foreground">{"☆".repeat(5 - review.rating)}</span>
-                  </p>
+                  <div className="mt-1 flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-4 w-4 ${i < review.rating ? "fill-amber-400 text-amber-400" : "text-muted"}`}
+                      />
+                    ))}
+                  </div>
                   {review.comment && <p className="mt-1 text-sm">{review.comment}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(review.createdAt)}</p>
                 </div>

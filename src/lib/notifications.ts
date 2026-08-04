@@ -164,32 +164,32 @@ export async function sendEmail(input: {
 const STATUS_MESSAGES: Record<string, { sms: string; whatsapp: string; title: string }> = {
   confirmed: {
     sms: "Amorino Café: Order {order} confirmed. We are preparing your food! Estimated ready in ~{eta} min.",
-    whatsapp: "Your Amorino order {order} is confirmed ✅ We are preparing your food! Estimated ready in ~{eta} min.",
+    whatsapp: "Your Amorino order {order} is confirmed. We are preparing your food! Estimated ready in ~{eta} min.",
     title: "Order confirmed",
   },
   preparing: {
     sms: "Amorino Café: Order {order} is being prepared by our chefs. Hang tight!",
-    whatsapp: "👨‍🍳 Your order {order} is being prepared by our chefs!",
+    whatsapp: "Your order {order} is being prepared by our chefs!",
     title: "Preparing your order",
   },
   ready: {
     sms: "Amorino Café: Order {order} is ready! Come pick it up or wait for the rider.",
-    whatsapp: "🎉 Your order {order} is ready! Our rider is on the way (delivery) or collect at the counter (pickup).",
+    whatsapp: "Your order {order} is ready! Our rider is on the way (delivery) or collect at the counter (pickup).",
     title: "Order ready",
   },
   out_for_delivery: {
     sms: "Amorino Café: Order {order} is out for delivery. Track it live on our website.",
-    whatsapp: "🛵 Your order {order} is out for delivery! Track your rider live: {trackUrl}",
+    whatsapp: "Your order {order} is out for delivery! Track your rider live: {trackUrl}",
     title: "Out for delivery",
   },
   delivered: {
     sms: "Amorino Café: Order {order} delivered. Thank you! Rate us here: {reviewUrl}",
-    whatsapp: "🍽️ Order {order} delivered! Enjoy your meal. Please leave us a review: {reviewUrl}",
+    whatsapp: "Order {order} delivered! Enjoy your meal. Please leave us a review: {reviewUrl}",
     title: "Order delivered",
   },
   picked_up: {
     sms: "Amorino Café: Order {order} picked up. Thank you! Rate us here: {reviewUrl}",
-    whatsapp: "🍽️ Order {order} picked up. Enjoy! Please leave us a review: {reviewUrl}",
+    whatsapp: "Order {order} picked up. Enjoy! Please leave us a review: {reviewUrl}",
     title: "Order picked up",
   },
   cancelled: {

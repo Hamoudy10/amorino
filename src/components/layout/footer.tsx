@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Phone, MessageCircle, Clock, MapPin, Camera } from "lucide-react";
+import Image from "next/image";
+import { Phone, MessageCircle, Clock, MapPin, Camera, Heart } from "lucide-react";
 import { whatsappDeepLink } from "@/lib/utils";
 
 export function Footer() {
@@ -9,7 +10,10 @@ export function Footer() {
     <footer className="border-t bg-card">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="mb-2 text-base font-bold">Amorino Café</p>
+          <div className="mb-2 flex items-center gap-2.5">
+            <Image src="/logo.png" alt="Amorino Café" width={30} height={28} className="h-8 w-auto" />
+            <p className="font-display text-base font-bold">Amorino Café</p>
+          </div>
           <p className="text-sm text-muted-foreground">
             Home of Coastal Dishes. Famous Mandi &amp; BBQ spot in the heart of Mombasa.
           </p>
@@ -78,7 +82,8 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Amorino Café · Makadara Rd, Mombasa · Made with ❤️ for the Coast
+        © {new Date().getFullYear()} Amorino Café · Makadara Rd, Mombasa · Made with{" "}
+        <Heart className="inline h-3 w-3 fill-primary text-primary" /> for the Coast
       </div>
     </footer>
   );

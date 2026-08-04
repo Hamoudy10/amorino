@@ -66,7 +66,7 @@ export function ReviewForm({ orderNumber: initialOrderNumber }: { orderNumber: s
       <Card className="mx-auto max-w-md">
         <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
           <CheckCircle2 className="h-10 w-10 text-success" />
-          <h2 className="text-xl font-bold">Thank you for your feedback! 🎉</h2>
+          <h2 className="text-xl font-bold">Thank you for your feedback!</h2>
           <p className="text-sm text-muted-foreground">
             Your review helps us serve you better.
           </p>

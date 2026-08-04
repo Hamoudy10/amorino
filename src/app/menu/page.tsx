@@ -9,7 +9,12 @@ export const metadata: Metadata = {
   description: "Browse the full Amorino Café menu — Mandi, BBQ, seafood, shawarma, coffee, shakes and more.",
 };
 
-export default async function MenuPage() {
+export default async function MenuPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category } = await searchParams;
   let menu: Awaited<ReturnType<typeof getPublicMenu>> = [];
   try {
     menu = await getPublicMenu();
@@ -25,7 +30,7 @@ export default async function MenuPage() {
           Every dish made to order. Delivery &amp; pickup available · M-Pesa accepted.
         </p>
       </div>
-      <MenuExplorer menu={menu} />
+      <MenuExplorer menu={menu} initialCategory={category} />
     </div>
   );
 }

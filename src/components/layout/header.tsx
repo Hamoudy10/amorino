@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Menu, X, Coffee } from "lucide-react";
+import { ShoppingBag, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/components/providers/cart-provider";
 import { WhatsAppButton } from "@/components/ui/whatsapp-button";
@@ -21,11 +22,16 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Coffee className="h-5 w-5" />
-          </span>
-          <span className="text-lg font-bold tracking-tight">
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image
+            src="/logo.png"
+            alt="Amorino Café"
+            width={36}
+            height={34}
+            priority
+            className="h-9 w-auto"
+          />
+          <span className="font-display text-xl font-bold tracking-tight">
             Amorino <span className="text-primary">Café</span>
           </span>
         </Link>

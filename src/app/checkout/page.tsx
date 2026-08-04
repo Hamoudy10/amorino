@@ -259,7 +259,7 @@ export default function CheckoutPage() {
             {step === "success" && (
               <>
                 <CheckCircle2 className="h-10 w-10 text-success" />
-                <h2 className="text-xl font-bold">Order placed! 🎉</h2>
+                <h2 className="text-xl font-bold">Order placed!</h2>
                 <p className="text-sm text-muted-foreground">
                   Order <span className="font-semibold text-foreground">{orderNumber}</span> confirmed.
                   Redirecting to tracking…

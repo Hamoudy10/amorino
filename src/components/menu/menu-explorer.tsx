@@ -7,20 +7,31 @@ import type { MenuCategoryWithItems, MenuItem } from "@/types";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ItemDetailDialog } from "@/components/menu/item-detail-dialog";
 
 type Filter = "all" | "popular" | "veg" | "spicy";
 
-export function MenuExplorer({ menu }: { menu: MenuCategoryWithItems[] }) {
+export function MenuExplorer({
+  menu,
+  initialCategory,
+}: {
+  menu: MenuCategoryWithItems[];
+  initialCategory?: string;
+}) {
   const [query, setQuery] = React.useState("");
-  const [activeCategory, setActiveCategory] = React.useState<string>(menu[0]?.slug ?? "");
+  const [activeCategory, setActiveCategory] = React.useState<string>(
+    initialCategory && menu.some((c) => c.slug === initialCategory)
+      ? initialCategory
+      : (menu[0]?.slug ?? "")
+  );
   const [filter, setFilter] = React.useState<Filter>("all");
   const [selected, setSelected] = React.useState<MenuItem | null>(null);
 
   React.useEffect(() => {
-    if (!activeCategory && menu.length > 0) setActiveCategory(menu[0].slug);
-  }, [menu, activeCategory]);
+    if (initialCategory && menu.some((c) => c.slug === initialCategory)) {
+      setActiveCategory(initialCategory);
+    }
+  }, [initialCategory, menu]);
 
   const allItems = menu.flatMap((c) => c.items);
   const visibleItems = allItems.filter((item) => {
