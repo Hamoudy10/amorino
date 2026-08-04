@@ -18,11 +18,13 @@ url.searchParams.delete("sslmode");
 
 const pool = new Pool({
   connectionString: url.toString(),
-  max: 10,
-  // Fail fast instead of hanging when the DB is unreachable (e.g. serverless
-  // cold start without a connected database).
-  connectionTimeoutMillis: 5000,
-  query_timeout: 10000,
+  max: 5,
+  // Supabase free tier autosuspends the DB after ~5 min idle — the first
+  // query after a pause pays a cold-start wake-up (~3-10s). Keep timeouts
+  // generous enough for that, and small enough to fail fast when the DB is
+  // genuinely unreachable.
+  connectionTimeoutMillis: 20000,
+  query_timeout: 30000,
   // Encrypt but don't verify the provider's certificate chain.
   ssl: isRemote ? { rejectUnauthorized: false } : undefined,
 });

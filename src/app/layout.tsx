@@ -6,6 +6,7 @@ import { CartProvider } from "@/components/providers/cart-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { CartBar } from "@/components/cart/cart-bar";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="flex-1">{children}</main>
             <Footer />
             <CartDrawer />
+            <CartBar />
             <Toaster richColors position="top-center" />
           </CartProvider>
         </ClerkProvider>
