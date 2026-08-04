@@ -1,7 +1,10 @@
 import { db } from "../db";
 import { categories, menuItems, users } from "../db/schema";
 import { seedDefaultSettings } from "../lib/settings";
-import "dotenv/config";
+import { config } from "dotenv";
+
+// Next.js loads .env.local automatically, but standalone scripts (tsx) do not.
+config({ path: ".env.local" });
 
 const categoriesData = [
   {

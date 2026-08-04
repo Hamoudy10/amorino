@@ -51,7 +51,9 @@ export async function getNextOrderNumber(): Promise<string> {
 }
 
 function likeOrderNumber() {
-  return sql`${orders.orderNumber} LIKE '${ORDER_NUMBER_PREFIX}-%'`;
+  // Prefix is a hardcoded constant — embed as a literal, not a bind
+  // parameter (parameters break LIKE type inference → error 42P18).
+  return sql`${orders.orderNumber} LIKE 'AMR-%'`;
 }
 
 export async function createOrder(input: CreateOrderInput) {
