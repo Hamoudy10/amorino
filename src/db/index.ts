@@ -18,7 +18,12 @@ url.searchParams.delete("sslmode");
 
 const pool = new Pool({
   connectionString: url.toString(),
-  max: 5,
+  // Serverless-friendly: keep per-instance connections minimal and release
+  // them quickly. Vercel keeps multiple instances warm; Supabase's pooler
+  // caps this project at 15 connections total — oversized pools exhaust it
+  // and every later query (including auth role lookups) starts failing.
+  max: 2,
+  idleTimeoutMillis: 10000,
   // Supabase free tier autosuspends the DB after ~5 min idle — the first
   // query after a pause pays a cold-start wake-up (~3-10s). Keep timeouts
   // generous enough for that, and small enough to fail fast when the DB is
