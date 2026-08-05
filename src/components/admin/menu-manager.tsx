@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ImageUpload } from "@/components/admin/image-upload";
 import {
   Dialog,
   DialogContent,
@@ -372,13 +373,20 @@ export function MenuManager() {
               />
             </div>
             <div>
-              <Label htmlFor="item-img">Image URL (Cloudinary or any image URL)</Label>
-              <Input
-                id="item-img"
+              <ImageUpload
+                label="Item photo"
                 value={draft.imageUrl}
-                onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })}
-                placeholder="https://res.cloudinary.com/…"
+                onChange={(url) => setDraft({ ...draft, imageUrl: url })}
               />
+              <div className="mt-2">
+                <Label htmlFor="item-img">…or paste an image URL</Label>
+                <Input
+                  id="item-img"
+                  value={draft.imageUrl}
+                  onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })}
+                  placeholder="https://… or /food/…"
+                />
+              </div>
             </div>
 
             <div>
