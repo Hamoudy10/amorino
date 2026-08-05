@@ -108,12 +108,15 @@ export async function createOrder(input: CreateOrderInput) {
 
   const orderNumber = await getNextOrderNumber();
   const total = Math.round(subtotal + deliveryFee);
+  // orders.user_id is a FK to users.id — callers may pass a Clerk ID, so
+  // resolve it to the DB user id first (null for guests).
+  const dbUserId = await resolveActorUserId(input.userId);
 
   const [order] = await db
     .insert(orders)
     .values({
       orderNumber,
-      userId: input.userId ?? null,
+      userId: dbUserId,
       customerName: input.customerName,
       customerPhone: input.customerPhone,
       customerEmail: input.customerEmail ?? null,
@@ -139,7 +142,7 @@ export async function createOrder(input: CreateOrderInput) {
 
   await db.insert(activityLogs).values({
     orderId: order.id,
-    userId: input.userId ?? null,
+    userId: dbUserId,
     action: "order_created",
     metadata: { type: input.type, paymentMethod: input.paymentMethod, total },
   });
@@ -157,7 +160,7 @@ export async function createOrder(input: CreateOrderInput) {
       orderNumber: order.orderNumber,
       customerPhone: order.customerPhone,
       customerEmail: order.customerEmail,
-      userId: input.userId ?? null,
+      userId: dbUserId,
       status: "confirmed",
       etaMinutes: maxPrep + 10,
     });

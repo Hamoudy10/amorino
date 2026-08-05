@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const protectedRoutes = createRouteMatcher(["/admin(.*)", "/rider(.*)"]);
+const protectedRoutes = createRouteMatcher(["/admin(.*)", "/rider(.*)", "/account(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   // Only gate on authentication here. Role checks live in server components

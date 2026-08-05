@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Menu, X, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { ShoppingBag, Menu, X, LogOut, LayoutDashboard, ChevronDown, PackageOpen } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useClerk } from "@clerk/nextjs";
 import { useCart } from "@/components/providers/cart-provider";
@@ -98,6 +98,13 @@ export function Header() {
                         </p>
                         <p className="truncate text-xs text-muted-foreground capitalize">{role}</p>
                       </div>
+                      <Link
+                        href="/account"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-muted-foreground hover:bg-accent"
+                      >
+                        <PackageOpen className="h-4 w-4" /> My Orders
+                      </Link>
                       {(role === "owner" || role === "admin") && (
                         <Link
                           href="/admin"
