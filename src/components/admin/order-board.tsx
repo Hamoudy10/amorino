@@ -81,7 +81,10 @@ export function OrderBoard() {
     try {
       const res = await fetch("/api/admin/riders", { cache: "no-store" });
       const json = await res.json();
-      if (json.ok) setRiders(json.data);
+      if (json.ok) {
+        // API returns { riders, candidates } — accept both shapes defensively.
+        setRiders(Array.isArray(json.data) ? json.data : (json.data?.riders ?? []));
+      }
     } catch {
       // ignore
     }
