@@ -126,3 +126,20 @@ body {
   background: var(--border);
   border-radius: 9999px;
 }
+
+/* Prices, order IDs and countdowns align better in tables/lists */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

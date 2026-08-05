@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   MessageCircle,
   Star,
+  PhoneCall,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +21,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeliveryMap } from "@/components/tracking/delivery-map";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types";
-import { formatKES, formatDateTime } from "@/lib/utils";
+import { formatKES, formatDateTime, normalizePhone } from "@/lib/utils";
 import { whatsappLink } from "@/components/ui/whatsapp-button";
 import { subscribeToOrder } from "@/lib/realtime";
+
+function maskRiderPhone(phone: string): string {
+  const p = normalizePhone(phone);
+  if (!/^254[17][0-9]{8}$/.test(p)) return phone;
+  return `0${p.slice(3, 5)}***${p.slice(9)}`;
+}
 
 interface TrackData {
   orderId: string;
@@ -39,6 +46,8 @@ interface TrackData {
   riderId: string | null;
   createdAt: string | null;
   items: Array<{ name: string; quantity: number; totalPrice: string }>;
+  riderName: string | null;
+  riderPhone: string | null;
 }
 
 const DELIVERY_STEPS: OrderStatus[] = [
@@ -288,6 +297,33 @@ export function OrderTracker({ orderNumber, phone }: { orderNumber: string; phon
                   <p className="mt-3 text-sm text-muted-foreground">
                     Delivering to: <span className="font-medium text-foreground">{order.deliveryAddress}</span>
                   </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {(order.status === "out_for_delivery" || order.riderName) && (
+            <Card>
+              <CardContent className="flex items-center gap-3 py-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-teal-700 text-sm font-semibold text-white">
+                  {(order.riderName ?? "R")[0].toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">
+                    {order.riderName ? `${order.riderName.split(" ")[0]}, your rider` : "Your rider"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {order.riderPhone ? maskRiderPhone(order.riderPhone) : "On the way with your order"}
+                  </p>
+                </div>
+                {order.riderPhone && (
+                  <a
+                    href={`tel:${order.riderPhone}`}
+                    aria-label="Call rider"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-card text-primary hover:bg-accent"
+                  >
+                    <PhoneCall className="h-4 w-4" />
+                  </a>
                 )}
               </CardContent>
             </Card>

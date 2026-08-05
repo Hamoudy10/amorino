@@ -18,12 +18,20 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
+import { ProgressRing } from "@/components/checkout/progress-ring";
+import { Confetti } from "@/components/ui/confetti";
 import { formatKES, normalizePhone } from "@/lib/utils";
 import type { OrderType, PaymentMethod } from "@/types";
 
 type Step = "form" | "submitting" | "stk" | "success" | "error";
 
 const CAFE_COORDS = { lat: -4.0435, lng: 39.6682 };
+
+function maskPhone(phone: string): string {
+  const p = normalizePhone(phone);
+  if (!/^254[17][0-9]{8}$/.test(p)) return phone;
+  return `0${p.slice(3, 5)} ${p.slice(5, 7)}**${p.slice(9)}`;
+}
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -37,7 +45,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { lines, subtotal, count, clear } = useCart();
+  const { lines, subtotal, count, clear, tip } = useCart();
 
   const [step, setStep] = React.useState<Step>("form");
   const [orderNumber, setOrderNumber] = React.useState<string>("");
@@ -58,6 +66,34 @@ export default function CheckoutPage() {
 
   const [deliveryFee, setDeliveryFee] = React.useState<number | null>(null);
   const [feeStatus, setFeeStatus] = React.useState<"idle" | "calculating" | "done" | "out_of_range">("idle");
+  const [switchingToCash, setSwitchingToCash] = React.useState(false);
+
+  const total = subtotal + (deliveryFee ?? 0) + tip;
+
+  const switchToCash = async () => {
+    if (!orderNumber) return;
+    setSwitchingToCash(true);
+    try {
+      const res = await fetch("/api/orders/switch-to-cash", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderNumber, phone: form.customerPhone }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        toast.error(json.error ?? "Could not switch payment method");
+        return;
+      }
+      toast.success("Order switched to pay on delivery");
+      clear();
+      setStep("success");
+      setTimeout(() => router.push(`/track/${orderNumber}`), 1200);
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setSwitchingToCash(false);
+    }
+  };
 
   const hasGoogleMaps = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
 
@@ -159,6 +195,7 @@ export default function CheckoutPage() {
           deliveryLat: form.deliveryLat ? Number(form.deliveryLat) : undefined,
           deliveryLng: form.deliveryLng ? Number(form.deliveryLng) : undefined,
           specialInstructions: form.specialInstructions.trim() || undefined,
+          tip,
         }),
       });
       const json = await res.json();
@@ -238,19 +275,41 @@ export default function CheckoutPage() {
                 <Smartphone className="h-10 w-10 animate-pulse text-primary" />
                 <h2 className="text-xl font-bold">Check your phone</h2>
                 <p className="text-sm text-muted-foreground">
-                  An M-Pesa payment request for order <span className="font-semibold text-foreground">{orderNumber}</span>{" "}
-                  has been sent to your phone. Enter your M-Pesa PIN to confirm.
+                  An M-Pesa payment request for{" "}
+                  <span className="font-semibold text-foreground">{formatKES(total)}</span> has
+                  been sent to
                 </p>
-                <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5 animate-spin" /> Waiting for payment…
+                <p className="text-lg font-semibold tabular-nums tracking-wide">
+                  {maskPhone(form.customerPhone)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Enter your M-Pesa PIN to complete order{" "}
+                  <span className="font-semibold text-foreground">{orderNumber}</span>
+                </p>
+                <ProgressRing totalSeconds={300} />
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => void pollPayment(checkoutRequestId)}>
+                    Check payment status
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      void submit();
+                    }}
+                  >
+                    Try again
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void switchToCash()}
+                    disabled={switchingToCash}
+                  >
+                    {switchingToCash && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Pay cash on delivery
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void pollPayment(checkoutRequestId)}
-                >
-                  Check payment status
-                </Button>
                 <Button asChild variant="ghost" size="sm">
                   <Link href={`/track/${orderNumber}`}>I&apos;ll check later — go to tracking</Link>
                 </Button>
@@ -258,6 +317,7 @@ export default function CheckoutPage() {
             )}
             {step === "success" && (
               <>
+                <Confetti />
                 <CheckCircle2 className="h-10 w-10 text-success" />
                 <h2 className="text-xl font-bold">Order placed!</h2>
                 <p className="text-sm text-muted-foreground">
@@ -271,8 +331,18 @@ export default function CheckoutPage() {
                 <XCircle className="h-10 w-10 text-destructive" />
                 <h2 className="text-xl font-bold">Something went wrong</h2>
                 <p className="text-sm text-muted-foreground">{errorMsg}</p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap justify-center gap-2">
                   <Button onClick={() => setStep("form")}>Back to checkout</Button>
+                  {orderNumber && form.paymentMethod === "mpesa" && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => void switchToCash()}
+                      disabled={switchingToCash}
+                    >
+                      {switchingToCash && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      Pay cash on delivery
+                    </Button>
+                  )}
                   {orderNumber && (
                     <Button asChild variant="outline">
                       <Link href={`/track/${orderNumber}`}>Track order</Link>
@@ -484,10 +554,16 @@ export default function CheckoutPage() {
                   <span>{deliveryFee === 0 ? "Free" : formatKES(deliveryFee)}</span>
                 )}
               </div>
+              {tip > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tip</span>
+                  <span>{formatKES(tip)}</span>
+                </div>
+              )}
               <div className="my-2 border-t" />
               <div className="flex justify-between text-base font-bold">
                 <span>Total</span>
-                <span>{formatKES(subtotal + (deliveryFee ?? 0))}</span>
+                <span>{formatKES(total)}</span>
               </div>
             </CardContent>
           </Card>

@@ -24,12 +24,13 @@ export interface CreateOrderInput {
   customerPhone: string;
   customerEmail?: string | null;
   type: "delivery" | "pickup" | "dine_in";
-  items: CartItemInput[];
+  items: Array<{ menuItemId: string; quantity: number; options?: Array<{ name: string; price: number }> }>;
   deliveryAddress?: string | null;
   deliveryLat?: number | null;
   deliveryLng?: number | null;
   specialInstructions?: string | null;
   paymentMethod: "mpesa" | "cash";
+  tip?: number;
   userId?: string | null;
 }
 
@@ -107,7 +108,7 @@ export async function createOrder(input: CreateOrderInput) {
   }
 
   const orderNumber = await getNextOrderNumber();
-  const total = Math.round(subtotal + deliveryFee);
+  const total = Math.round(subtotal + deliveryFee + (input.tip ?? 0));
   // orders.user_id is a FK to users.id — callers may pass a Clerk ID, so
   // resolve it to the DB user id first (null for guests).
   const dbUserId = await resolveActorUserId(input.userId);
@@ -126,6 +127,7 @@ export async function createOrder(input: CreateOrderInput) {
       paymentMethod: input.paymentMethod,
       subtotal: subtotal.toFixed(2),
       deliveryFee: deliveryFee.toFixed(2),
+      tip: (input.tip ?? 0).toFixed(2),
       discount: "0",
       total: total.toFixed(2),
       deliveryAddress: input.deliveryAddress ?? null,
@@ -319,9 +321,12 @@ export async function trackOrder(orderNumber: string, phone: string): Promise<Tr
       estimatedReadyAt: orders.estimatedReadyAt,
       deliveryAddress: orders.deliveryAddress,
       riderId: orders.riderId,
+      riderName: users.name,
+      riderPhone: users.phone,
       createdAt: orders.createdAt,
     })
     .from(orders)
+    .leftJoin(users, eq(orders.riderId, users.id))
     .where(and(eq(orders.orderNumber, orderNumber), eq(orders.customerPhone, phone)))
     .limit(1);
   if (rows.length === 0) return null;

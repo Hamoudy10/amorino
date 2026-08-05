@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, HandCoins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCart } from "@/components/providers/cart-provider";
+import { useCart, TIP_OPTIONS } from "@/components/providers/cart-provider";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatKES } from "@/lib/utils";
 
 export function CartDrawer() {
-  const { lines, count, subtotal, isOpen, close, updateQuantity, removeLine } = useCart();
+  const { lines, count, subtotal, tip, setTip, totalWithTip, isOpen, close, updateQuantity, removeLine } = useCart();
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => (open ? undefined : close())}>
@@ -87,12 +87,52 @@ export function CartDrawer() {
 
         {lines.length > 0 && (
           <div className="border-t px-6 py-4">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Subtotal</span>
-              <span className="text-lg font-bold">{formatKES(subtotal)}</span>
+            {/* Tip selector */}
+            <div className="mb-4">
+              <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+                <HandCoins className="h-4 w-4 text-primary" /> Add a tip
+              </p>
+              <div className="flex gap-2">
+                {TIP_OPTIONS.map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => setTip(amount)}
+                    className={`flex-1 rounded-lg border px-2 py-2 text-sm font-medium transition-colors ${
+                      tip === amount
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-background text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {amount === 0 ? "No tip" : formatKES(amount)}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <div className="mb-4 space-y-1.5 text-sm">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Subtotal</span>
+                <span className="tabular-nums">{formatKES(subtotal)}</span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Delivery fee</span>
+                <span className="font-medium text-success">Calculated at checkout</span>
+              </div>
+              {tip > 0 && (
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Tip</span>
+                  <span className="tabular-nums">{formatKES(tip)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between border-t pt-1.5 text-base font-bold">
+                <span>Total</span>
+                <span className="tabular-nums">{formatKES(totalWithTip)}</span>
+              </div>
+            </div>
+
             <Button asChild className="w-full" size="lg" onClick={close}>
-              <Link href="/checkout">Proceed to Checkout</Link>
+              <Link href="/checkout">Place order · {formatKES(totalWithTip)}</Link>
             </Button>
           </div>
         )}

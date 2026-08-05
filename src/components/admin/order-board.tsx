@@ -26,6 +26,7 @@ interface BoardOrder {
   status: OrderStatus;
   paymentStatus: string | null;
   total: string;
+  tip: string;
   deliveryAddress: string | null;
   riderId: string | null;
   riderName: string | null;
@@ -221,7 +222,12 @@ export function OrderBoard() {
                         {order.items.length > 4 && <li>+{order.items.length - 4} more</li>}
                       </ul>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-bold">{formatKES(order.total)}</span>
+                        <span className="font-bold tabular-nums">{formatKES(order.total)}</span>
+                        {Number(order.tip) > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            incl. {formatKES(order.tip)} tip
+                          </span>
+                        )}
                         <span className="text-xs text-muted-foreground">{order.deliveryAddress ?? "Pickup"}</span>
                       </div>
 

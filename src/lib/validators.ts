@@ -26,6 +26,7 @@ export const createOrderSchema = z.object({
   deliveryLng: z.number().min(-180).max(180).optional(),
   specialInstructions: z.string().max(1000).optional(),
   paymentMethod: z.enum(["mpesa", "cash"]).default("mpesa"),
+  tip: z.coerce.number().min(0).max(100000).default(0),
 });
 
 export const trackOrderSchema = z.object({

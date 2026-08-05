@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { CartProvider } from "@/components/providers/cart-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { CartBar } from "@/components/cart/cart-bar";
 import { Toaster } from "@/components/ui/sonner";
@@ -51,8 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ClerkProvider>
           <CartProvider>
             <Header />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-16 md:pb-0">{children}</main>
             <Footer />
+            <BottomNav />
             <CartDrawer />
             <CartBar />
             <Toaster richColors position="top-center" />

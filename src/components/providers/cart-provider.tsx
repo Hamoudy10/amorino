@@ -7,6 +7,9 @@ interface CartContextValue {
   lines: CartLine[];
   count: number;
   subtotal: number;
+  tip: number;
+  setTip: (tip: number) => void;
+  totalWithTip: number;
   isOpen: boolean;
   open: () => void;
   close: () => void;
@@ -19,6 +22,9 @@ interface CartContextValue {
 const CartContext = React.createContext<CartContextValue | null>(null);
 
 const STORAGE_KEY = "amorino:cart:v1";
+const TIP_STORAGE_KEY = "amorino:tip:v1";
+
+export const TIP_OPTIONS = [0, 50, 100, 200];
 
 function loadCart(): CartLine[] {
   if (typeof window === "undefined") return [];
@@ -35,11 +41,18 @@ function loadCart(): CartLine[] {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [lines, setLines] = React.useState<CartLine[]>([]);
   const [isOpen, setIsOpen] = React.useState(false);
+  const [tip, setTipState] = React.useState(0);
   const hydrated = React.useRef(false);
 
   React.useEffect(() => {
     if (!hydrated.current) {
       setLines(loadCart());
+      try {
+        const savedTip = Number(window.localStorage.getItem(TIP_STORAGE_KEY) ?? 0);
+        setTipState(Number.isFinite(savedTip) ? savedTip : 0);
+      } catch {
+        // ignore
+      }
       hydrated.current = true;
     }
   }, []);
@@ -53,6 +66,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [lines]);
+
+  React.useEffect(() => {
+    if (hydrated.current) {
+      try {
+        window.localStorage.setItem(TIP_STORAGE_KEY, String(tip));
+      } catch {
+        // ignore
+      }
+    }
+  }, [tip]);
+
+  const setTip = React.useCallback((next: number) => {
+    setTipState(Number.isFinite(next) && next >= 0 ? Math.round(next) : 0);
+  }, []);
 
   const addItem = React.useCallback(
     (item: MenuItem, quantity = 1, options: MenuOption[] = []) => {
@@ -103,6 +130,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       lines,
       count,
       subtotal,
+      tip,
+      setTip,
+      totalWithTip: subtotal + tip,
       isOpen,
       open: () => setIsOpen(true),
       close: () => setIsOpen(false),
@@ -111,7 +141,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeLine,
       clear,
     };
-  }, [lines, isOpen, addItem, updateQuantity, removeLine, clear]);
+  }, [lines, tip, setTip, isOpen, addItem, updateQuantity, removeLine, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

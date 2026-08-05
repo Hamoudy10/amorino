@@ -88,6 +88,7 @@ export const orders = pgTable(
     mpesaReceiptNumber: text("mpesa_receipt_number"),
     subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
     deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).default("0"),
+    tip: decimal("tip", { precision: 10, scale: 2 }).default("0"),
     discount: decimal("discount", { precision: 10, scale: 2 }).default("0"),
     total: decimal("total", { precision: 10, scale: 2 }).notNull(),
     deliveryAddress: text("delivery_address"),
