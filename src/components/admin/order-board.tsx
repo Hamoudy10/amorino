@@ -236,7 +236,7 @@ export function OrderBoard() {
                             <SelectItem value="">— No rider —</SelectItem>
                             {riders.map((r) => (
                               <SelectItem key={r.id} value={r.id}>
-                                {r.name ?? r.phone}
+                                {r.name ?? r.phone ?? r.email ?? "Rider"}
                               </SelectItem>
                             ))}
                           </SelectContent>
