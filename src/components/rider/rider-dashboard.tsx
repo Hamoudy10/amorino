@@ -80,6 +80,7 @@ export function RiderDashboard() {
   };
 
   // Geolocation broadcasting
+  const [shareError, setShareError] = React.useState<string>("");
   React.useEffect(() => {
     if (!tracking || !trackingOrderId) return;
     if (!("geolocation" in navigator)) {
@@ -88,6 +89,7 @@ export function RiderDashboard() {
       return;
     }
     toast("Sharing your live location. Keep this tab open.");
+    setShareError("");
     const send = async () => {
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
@@ -96,7 +98,7 @@ export function RiderDashboard() {
             timeout: 10_000,
           })
         );
-        await fetch("/api/rider/location", {
+        const res = await fetch("/api/rider/location", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -106,8 +108,10 @@ export function RiderDashboard() {
             accuracy: pos.coords.accuracy,
           }),
         });
+        const json = await res.json();
+        if (!json.ok) setShareError(json.error ?? "Location update rejected");
       } catch {
-        // Location temporarily unavailable — try again next tick
+        setShareError("Could not reach the server — check your connection");
       }
     };
     void send();
@@ -240,10 +244,21 @@ export function RiderDashboard() {
                       }}
                       className="ml-auto gap-2"
                     >
-                      <MapPin className="h-4 w-4" />
-                      {isTracking ? "Stop sharing location" : "Share live location"}
+                      {isTracking ? (
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                        </span>
+                      ) : (
+                        <MapPin className="h-4 w-4" />
+                      )}
+                      {isTracking ? "Sharing live" : "Share live location"}
                     </Button>
                   ) : null}
+                </div>
+                {shareError && isTracking && (
+                  <p className="text-xs font-medium text-destructive">{shareError}</p>
+                )}
                 </div>
               </CardContent>
             </Card>

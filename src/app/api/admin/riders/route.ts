@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/db";
-import { users, orders } from "@/db/schema";
-import { asc, eq, sql } from "drizzle-orm";
+import { users, orders, riderLocations } from "@/db/schema";
+import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { ok, serverError, unauthorized, fail } from "@/lib/api";
 import { requireRole, upsertUserFromClerk, setUserRole } from "@/lib/auth";
 import { findClerkUser, getRiderCandidates } from "@/lib/clerk-admin";
@@ -49,10 +49,23 @@ export async function GET() {
 
     const countByRider = new Map(stats.map((s) => [s.riderId, s.count]));
 
+    // Latest location per rider (for a "last seen" line on each rider card)
+    const locs = await db
+      .select()
+      .from(riderLocations)
+      .orderBy(desc(riderLocations.recordedAt))
+      .limit(1000);
+    const latestLocByRider = new Map<string, (typeof locs)[number]>();
+    for (const loc of locs) {
+      if (!loc.riderId) continue;
+      if (!latestLocByRider.has(loc.riderId)) latestLocByRider.set(loc.riderId, loc);
+    }
+
     return ok({
       riders: riders.map((r) => ({
         ...r,
         activeDeliveries: countByRider.get(r.id) ?? 0,
+        lastLocation: latestLocByRider.get(r.id) ?? null,
       })),
       candidates: await getRiderCandidates(),
     });

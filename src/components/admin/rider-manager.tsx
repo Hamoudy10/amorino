@@ -15,7 +15,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, timeAgo } from "@/lib/utils";
 
 interface RiderRow {
   id: string;
@@ -26,6 +26,11 @@ interface RiderRow {
   isActive: boolean | null;
   createdAt: string;
   activeDeliveries: number;
+  lastLocation: {
+    lat: string;
+    lng: string;
+    recordedAt: string;
+  } | null;
 }
 
 interface CandidateRow {
@@ -189,6 +194,19 @@ export function RiderManager() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   {rider.activeDeliveries} active deliver{rider.activeDeliveries === 1 ? "y" : "ies"} · added{" "}
                   {formatDateTime(rider.createdAt)}
+                </p>
+                <p
+                  className={`mt-1 text-xs ${
+                    rider.lastLocation && timeAgo(rider.lastLocation.recordedAt) === "just now"
+                      ? "font-medium text-success"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {rider.lastLocation
+                    ? timeAgo(rider.lastLocation.recordedAt) === "just now"
+                      ? "● Sharing location now"
+                      : `Last seen ${timeAgo(rider.lastLocation.recordedAt)}`
+                    : "Never shared location"}
                 </p>
               </CardContent>
             </Card>
