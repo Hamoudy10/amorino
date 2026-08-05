@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Loader2, Bike } from "lucide-react";
+import { Plus, Loader2, Bike, UserPlus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,25 +20,39 @@ import { formatDateTime } from "@/lib/utils";
 interface RiderRow {
   id: string;
   name: string | null;
-  phone: string;
+  phone: string | null;
+  email: string | null;
   clerkId: string | null;
   isActive: boolean | null;
   createdAt: string;
   activeDeliveries: number;
 }
 
+interface CandidateRow {
+  id: string;
+  clerkId: string | null;
+  email: string | null;
+  name: string | null;
+  phone: string | null;
+}
+
 export function RiderManager() {
   const [riders, setRiders] = React.useState<RiderRow[]>([]);
+  const [candidates, setCandidates] = React.useState<CandidateRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [form, setForm] = React.useState({ clerkId: "", phone: "", name: "" });
+  const [form, setForm] = React.useState({ email: "", phone: "", name: "" });
   const [saving, setSaving] = React.useState(false);
+  const [promotingId, setPromotingId] = React.useState<string | null>(null);
 
   const fetchRiders = React.useCallback(async () => {
     try {
       const res = await fetch("/api/admin/riders", { cache: "no-store" });
       const json = await res.json();
-      if (json.ok) setRiders(json.data);
+      if (json.ok) {
+        setRiders(json.data.riders);
+        setCandidates(json.data.candidates);
+      }
     } catch {
       // ignore
     } finally {
@@ -51,8 +65,8 @@ export function RiderManager() {
   }, [fetchRiders]);
 
   const addRider = async () => {
-    if (!form.clerkId.trim() || !form.phone.trim()) {
-      toast.error("Clerk user ID and phone are required");
+    if (!form.email.trim()) {
+      toast.error("Enter the rider's sign-up email");
       return;
     }
     setSaving(true);
@@ -61,8 +75,8 @@ export function RiderManager() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clerkId: form.clerkId.trim(),
-          phone: form.phone.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || undefined,
           name: form.name.trim() || undefined,
         }),
       });
@@ -71,14 +85,36 @@ export function RiderManager() {
         toast.error(json.error ?? "Could not add rider");
         return;
       }
-      toast.success("Rider added");
+      toast.success("Rider added — they can sign in now");
       setDialogOpen(false);
-      setForm({ clerkId: "", phone: "", name: "" });
+      setForm({ email: "", phone: "", name: "" });
       await fetchRiders();
     } catch {
       toast.error("Network error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const promote = async (c: CandidateRow) => {
+    setPromotingId(c.id);
+    try {
+      const res = await fetch("/api/admin/riders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clerkId: c.clerkId!, phone: c.phone ?? undefined }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        toast.error(json.error ?? "Could not promote user");
+        return;
+      }
+      toast.success(`${c.name ?? c.email} is now a rider`);
+      await fetchRiders();
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setPromotingId(null);
     }
   };
 
@@ -91,6 +127,40 @@ export function RiderManager() {
         </Button>
       </div>
 
+      {/* Candidates who signed up but aren't riders yet */}
+      {candidates.length > 0 && (
+        <Card>
+          <CardContent className="space-y-2 pt-5">
+            <div className="mb-2 flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">
+                Signed-up accounts — one click to make them a rider
+              </p>
+            </div>
+            {candidates.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{c.name ?? c.email}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {c.email ?? "no email"} · {c.phone ?? "no phone"}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  disabled={promotingId === c.id}
+                  onClick={() => void promote(c)}
+                >
+                  {promotingId === c.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Make rider
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <p className="py-12 text-center text-sm text-muted-foreground">Loading riders…</p>
       ) : riders.length === 0 ? (
@@ -99,8 +169,8 @@ export function RiderManager() {
             <Bike className="h-10 w-10 text-muted-foreground/40" />
             <p className="font-semibold">No riders yet</p>
             <p className="text-sm text-muted-foreground">
-              Add a rider to assign deliveries. The rider must first sign up on{" "}
-              <span className="font-mono">/rider</span> so you have their Clerk user ID.
+              The rider signs up on the site first (Sign up → their email). Then add them here
+              with that email — no need to leave this app.
             </p>
           </CardContent>
         </Card>
@@ -110,17 +180,15 @@ export function RiderManager() {
             <Card key={rider.id}>
               <CardContent className="pt-5">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="font-semibold">{rider.name ?? rider.phone}</p>
+                  <p className="font-semibold">{rider.name ?? rider.phone ?? rider.email}</p>
                   <Badge variant={rider.isActive ? "success" : "outline"}>
                     {rider.isActive ? "Active" : "Inactive"}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{rider.phone}</p>
+                <p className="text-sm text-muted-foreground">{rider.phone ?? rider.email}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {rider.activeDeliveries} active delivery{ rider.activeDeliveries === 1 ? "" : "ies"} · added {formatDateTime(rider.createdAt)}
-                </p>
-                <p className="mt-2 break-all rounded bg-muted p-2 font-mono text-[11px] text-muted-foreground">
-                  clerkId: {rider.clerkId ?? "—"}
+                  {rider.activeDeliveries} active deliver{rider.activeDeliveries === 1 ? "y" : "ies"} · added{" "}
+                  {formatDateTime(rider.createdAt)}
                 </p>
               </CardContent>
             </Card>
@@ -133,21 +201,23 @@ export function RiderManager() {
           <DialogHeader>
             <DialogTitle>Add a Rider</DialogTitle>
             <DialogDescription>
-              Copy the rider&apos;s Clerk user ID from their profile, then link it to their phone.
+              The rider must sign up on the site first. Enter the email they used — their account
+              is found automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="rider-clerkid">Clerk user ID *</Label>
+              <Label htmlFor="rider-email">Sign-up email *</Label>
               <Input
-                id="rider-clerkid"
-                value={form.clerkId}
-                onChange={(e) => setForm({ ...form, clerkId: e.target.value })}
-                placeholder="user_2abc…"
+                id="rider-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="rider@example.com"
               />
             </div>
             <div>
-              <Label htmlFor="rider-phone">Phone *</Label>
+              <Label htmlFor="rider-phone">Phone (for delivery notifications)</Label>
               <Input
                 id="rider-phone"
                 value={form.phone}

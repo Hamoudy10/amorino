@@ -4,13 +4,21 @@ import { users, orders } from "@/db/schema";
 import { asc, eq, sql } from "drizzle-orm";
 import { ok, serverError, unauthorized, fail } from "@/lib/api";
 import { requireRole, upsertUserFromClerk, setUserRole } from "@/lib/auth";
+import { findClerkUser, getRiderCandidates } from "@/lib/clerk-admin";
 import { z } from "zod";
 
-const createRiderSchema = z.object({
-  clerkId: z.string().min(1),
-  phone: z.string().min(10),
-  name: z.string().min(2).optional(),
-});
+// Either a clerkId (copied from Clerk) or the sign-up email/phone (resolved
+// server-side — no need to leave the app).
+const createRiderSchema = z
+  .object({
+    clerkId: z.string().min(1).optional(),
+    email: z.string().email().optional(),
+    phone: z.string().min(10).optional(),
+    name: z.string().min(2).optional(),
+  })
+  .refine((v) => v.clerkId || v.email || v.phone, {
+    message: "Provide the rider's email or Clerk user ID",
+  });
 
 export async function GET() {
   try {
@@ -41,12 +49,13 @@ export async function GET() {
 
     const countByRider = new Map(stats.map((s) => [s.riderId, s.count]));
 
-    return ok(
-      riders.map((r) => ({
+    return ok({
+      riders: riders.map((r) => ({
         ...r,
         activeDeliveries: countByRider.get(r.id) ?? 0,
-      }))
-    );
+      })),
+      candidates: await getRiderCandidates(),
+    });
   } catch (err) {
     return serverError(err);
   }
@@ -61,13 +70,33 @@ export async function POST(req: NextRequest) {
     const parsed = createRiderSchema.safeParse(body);
     if (!parsed.success) return fail("Invalid rider data", 400, parsed.error.flatten());
 
+    let clerkId = parsed.data.clerkId;
+    let riderName = parsed.data.name ?? null;
+    let riderPhone = parsed.data.phone ?? null;
+
+    if (!clerkId) {
+      // Resolve the Clerk account by email/phone so the owner never has to
+      // open the Clerk dashboard.
+      const found = await findClerkUser({ email: parsed.data.email, phone: parsed.data.phone });
+      if (!found) {
+        return fail(
+          "No account found for that email — the rider must sign up on the site first",
+          404
+        );
+      }
+      clerkId = found.id;
+      riderName = riderName ?? found.name;
+      riderPhone = riderPhone ?? found.phone;
+    }
+
     await upsertUserFromClerk({
-      clerkId: parsed.data.clerkId,
-      phone: parsed.data.phone,
-      name: parsed.data.name ?? null,
+      clerkId,
+      phone: riderPhone,
+      name: riderName,
+      email: parsed.data.email,
       role: "rider",
     });
-    await setUserRole(parsed.data.clerkId, "rider");
+    await setUserRole(clerkId, "rider");
 
     return ok({ created: true }, 201);
   } catch (err) {

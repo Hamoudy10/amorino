@@ -32,8 +32,8 @@ export function RiderApp() {
             <h1 className="text-xl font-bold">Rider Portal</h1>
             <p className="text-sm text-muted-foreground">
               {state === "unauthorized"
-                ? "This portal is for Amorino riders. Ask the owner to assign the rider role to your account."
-                : "Sign in with your Amorino rider account to see your deliveries."}
+                ? "This portal is for Amorino riders. Signed up already? Ask the owner to add you in Admin → Riders (they just need your sign-up email)."
+                : "Sign in with your Amorino rider account to see your deliveries. New here? Sign up first, then ask the owner to add you."}
             </p>
             <SignInButton mode="modal">
               <Button className="gap-2">
