@@ -2,24 +2,15 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const protectedRoutes = createRouteMatcher(["/admin(.*)", "/rider(.*)"]);
-const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
+  // Only gate on authentication here. Role checks live in server components
+  // and API routes (getSessionUser), which resolve the role from session
+  // claims with a DB fallback — middleware runs on the edge without a DB.
   if (protectedRoutes(req)) {
     const session = await auth();
     if (!session.userId) {
       return session.redirectToSignIn({ returnBackUrl: req.url });
-    }
-
-    // Role gating for admin areas. The role is stored in Clerk publicMetadata.
-    const metadata = (session.sessionClaims?.publicMetadata ?? {}) as { role?: string };
-    const role = metadata.role ?? "customer";
-
-    if (isAdminRoute(req) && role !== "owner" && role !== "admin") {
-      return NextResponse.redirect(new URL("/rider", req.url));
-    }
-    if (req.nextUrl.pathname.startsWith("/rider") && role === "rider") {
-      return NextResponse.next();
     }
   }
   return NextResponse.next();

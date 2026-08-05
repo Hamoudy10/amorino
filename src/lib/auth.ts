@@ -15,6 +15,11 @@ export interface SessionUser {
 /**
  * Resolves the current session. `auth()` from Clerk works on both server
  * components and route handlers.
+ *
+ * Role resolution: Clerk session claims are authoritative when they carry a
+ * non-customer role. But claims can lag metadata changes (tokens are cached
+ * per session), so if the claim says "customer" we fall back to the `users`
+ * table, which is kept in sync by the Clerk webhook and admin actions.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await auth();
@@ -22,9 +27,25 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   // Role comes from Clerk publicMetadata (set via webhook/dashboard).
   const metadata = (session.sessionClaims?.publicMetadata ?? {}) as Record<string, unknown>;
-  const role: UserRole = (metadata.role as UserRole) ?? "customer";
-  const phone: string | null =
+  let role: UserRole = (metadata.role as UserRole) ?? "customer";
+  let phone: string | null =
     (metadata.phone as string) ?? session.sessionClaims?.phone_number ?? null;
+
+  if (role === "customer") {
+    try {
+      const [row] = await db
+        .select({ role: users.role, phone: users.phone })
+        .from(users)
+        .where(eq(users.clerkId, session.userId))
+        .limit(1);
+      if (row && row.role !== "customer") {
+        role = row.role;
+        if (row.phone) phone = row.phone;
+      }
+    } catch {
+      // DB unavailable — trust the claim (customer).
+    }
+  }
 
   return {
     id: session.userId,
@@ -66,20 +87,20 @@ export async function upsertUserFromClerk(input: {
     }
     return;
   }
-  const phone = input.phone;
-  if (!phone) return;
-  // Avoid unique constraint conflict if the phone already exists with another clerkId
-  const byPhone = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
-  if (byPhone.length > 0) {
-    await db
-      .update(users)
-      .set({ clerkId: input.clerkId, updatedAt: new Date() })
-      .where(eq(users.id, byPhone[0].id));
-    return;
+  // Avoid unique constraint conflicts if the phone already exists with another clerkId
+  if (input.phone) {
+    const byPhone = await db.select().from(users).where(eq(users.phone, input.phone)).limit(1);
+    if (byPhone.length > 0) {
+      await db
+        .update(users)
+        .set({ clerkId: input.clerkId, updatedAt: new Date() })
+        .where(eq(users.id, byPhone[0].id));
+      return;
+    }
   }
   await db.insert(users).values({
     clerkId: input.clerkId,
-    phone,
+    phone: input.phone ?? null,
     name: input.name ?? null,
     email: input.email ?? null,
     role: input.role ?? "customer",
