@@ -259,7 +259,6 @@ export function RiderDashboard() {
                 {shareError && isTracking && (
                   <p className="text-xs font-medium text-destructive">{shareError}</p>
                 )}
-                </div>
               </CardContent>
             </Card>
           );
