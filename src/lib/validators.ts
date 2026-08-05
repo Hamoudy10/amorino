@@ -84,7 +84,9 @@ export const menuItemAdminSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(1000).optional(),
   price: z.coerce.number().positive(),
-  imageUrl: z.string().url().optional().or(z.literal("")),
+  // Relative paths (/food/...) are used for bundled photos; absolute URLs
+  // for Cloudinary etc.
+  imageUrl: z.string().max(500).optional().or(z.literal("")),
   isAvailable: z.boolean().default(true),
   isPopular: z.boolean().default(false),
   isVegetarian: z.boolean().default(false),
@@ -98,7 +100,7 @@ export const categoryAdminSchema = z.object({
   name: z.string().min(1).max(80),
   description: z.string().max(500).optional(),
   sortOrder: z.coerce.number().int().default(0),
-  imageUrl: z.string().url().optional().or(z.literal("")),
+  imageUrl: z.string().max(500).optional().or(z.literal("")),
   isActive: z.boolean().default(true),
 });
 
