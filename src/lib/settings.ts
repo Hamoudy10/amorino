@@ -117,7 +117,7 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Café location: Makadara Rd, Mombasa (approx)
+// Café location: Makadara Rd, Mombasa (approx) — re-exported client-safe copy.
 export const CAFE_COORDS = { lat: -4.0435, lng: 39.6682 };
 
 export async function calculateDeliveryFee(distanceKm: number): Promise<number> {

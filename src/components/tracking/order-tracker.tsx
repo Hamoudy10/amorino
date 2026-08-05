@@ -265,9 +265,11 @@ export function OrderTracker({ orderNumber, phone }: { orderNumber: string; phon
               <CardHeader>
                 <CardTitle>Live Delivery Tracking</CardTitle>
                 <CardDescription>
-                  {riderPos
-                    ? "Rider location updates every ~10 seconds."
-                    : "Rider location appears once your order is out for delivery."}
+                  {order.status === "out_for_delivery"
+                    ? riderPos
+                      ? "Rider location updates every ~10 seconds."
+                      : "Rider location appears once they start moving."
+                    : "Your route from Amorino Café — rider location appears once the order is out for delivery."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -276,6 +278,11 @@ export function OrderTracker({ orderNumber, phone }: { orderNumber: string; phon
                   riderLng={riderPos?.lng ?? null}
                   customerLat={Number(order.deliveryLat)}
                   customerLng={Number(order.deliveryLng)}
+                  label={
+                    order.status === "out_for_delivery"
+                      ? "Estimated arrival updates as the rider moves."
+                      : undefined
+                  }
                 />
                 {order.deliveryAddress && (
                   <p className="mt-3 text-sm text-muted-foreground">

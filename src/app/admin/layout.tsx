@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Settings,
   Coffee,
+  Map as MapIcon,
 } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 
@@ -21,6 +22,7 @@ const NAV = [
   { href: "/admin/orders", label: "Orders", icon: ClipboardList },
   { href: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/admin/riders", label: "Riders", icon: Bike },
+  { href: "/admin/map", label: "Live Map", icon: MapIcon },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/complaints", label: "Complaints", icon: AlertTriangle },

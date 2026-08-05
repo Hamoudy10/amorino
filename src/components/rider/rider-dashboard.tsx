@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types";
 import { formatKES, formatDateTime } from "@/lib/utils";
+import { RiderMap } from "@/components/rider/rider-map";
 
 interface RiderOrder {
   id: string;
@@ -198,6 +199,14 @@ export function RiderDashboard() {
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     {order.deliveryAddress}
                   </p>
+                )}
+
+                {order.type === "delivery" && order.deliveryLat && order.deliveryLng && (
+                  <RiderMap
+                    customerLat={Number(order.deliveryLat)}
+                    customerLng={Number(order.deliveryLng)}
+                    customerAddress={order.deliveryAddress}
+                  />
                 )}
 
                 <div className="flex flex-wrap items-center gap-2 pt-1">
