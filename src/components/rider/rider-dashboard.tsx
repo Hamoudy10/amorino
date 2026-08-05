@@ -91,13 +91,26 @@ export function RiderDashboard() {
     toast("Sharing your live location. Keep this tab open.");
     setShareError("");
     const send = async () => {
+      let pos: GeolocationPosition;
       try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        pos = await new Promise<GeolocationPosition>((resolve, reject) =>
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
             timeout: 10_000,
           })
         );
+      } catch (err) {
+        const code = (err as GeolocationPositionError | null)?.code;
+        setShareError(
+          code === 1
+            ? "Location permission is blocked. Click the padlock icon in the address bar, allow location, then try again."
+            : code === 2
+              ? "Location unavailable — check your device's GPS/WiFi and try again."
+              : "Location lookup timed out — retrying automatically."
+        );
+        return;
+      }
+      try {
         const res = await fetch("/api/rider/location", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -109,7 +122,11 @@ export function RiderDashboard() {
           }),
         });
         const json = await res.json();
-        if (!json.ok) setShareError(json.error ?? "Location update rejected");
+        if (!json.ok) {
+          setShareError(json.error ?? "Location update rejected");
+          return;
+        }
+        setShareError("");
       } catch {
         setShareError("Could not reach the server — check your connection");
       }
