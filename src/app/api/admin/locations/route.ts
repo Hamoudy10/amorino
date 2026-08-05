@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { users, orders, riderLocations } from "@/db/schema";
-import { desc, eq, gte, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { ok, serverError, unauthorized } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 
@@ -14,13 +14,12 @@ export async function GET(req: NextRequest) {
     const user = await requireRole("owner", "admin");
     if (!user) return unauthorized();
 
-    const since = new Date(Date.now() - 15 * 60 * 1000);
-
     const [locs, riders, active] = await Promise.all([
+      // Latest location per rider — no time cutoff, so the admin always sees
+      // the last known position (staleness is shown by the UI).
       db
         .select()
         .from(riderLocations)
-        .where(gte(riderLocations.recordedAt, since))
         .orderBy(desc(riderLocations.recordedAt))
         .limit(1000),
       db

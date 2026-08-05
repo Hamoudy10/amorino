@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatTime } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types";
 
 const LIBRARIES: Libraries = ["places", "geometry"];
@@ -157,10 +157,14 @@ export function FleetMap() {
               </div>
               {r.location ? (
                 <p className="text-xs text-muted-foreground">
-                  Updated {formatTime(r.location.recordedAt)}
+                  {timeAgo(r.location.recordedAt) === "just now"
+                    ? "Updated just now"
+                    : `Last seen ${timeAgo(r.location.recordedAt)}`}
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">Not sharing location (toggle on in rider app)</p>
+                <p className="text-xs text-muted-foreground">
+                  Never shared location — rider must toggle "Share live location" on an out-for-delivery order
+                </p>
               )}
               {r.activeOrder ? (
                 <div className="mt-2 rounded-lg border p-2 text-xs">

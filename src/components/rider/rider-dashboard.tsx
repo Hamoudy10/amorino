@@ -230,7 +230,7 @@ export function RiderDashboard() {
                   <a href={`tel:${order.customerPhone}`} className="inline-flex h-9 items-center gap-2 rounded-md border px-3 text-xs font-semibold hover:bg-accent">
                     <PhoneCall className="h-4 w-4" /> Call customer
                   </a>
-                  {order.status === "out_for_delivery" && (
+                  {order.status === "out_for_delivery" || order.status === "ready" ? (
                     <Button
                       size="sm"
                       variant={isTracking ? "success" : "secondary"}
@@ -243,7 +243,7 @@ export function RiderDashboard() {
                       <MapPin className="h-4 w-4" />
                       {isTracking ? "Stop sharing location" : "Share live location"}
                     </Button>
-                  )}
+                  ) : null}
                 </div>
               </CardContent>
             </Card>
