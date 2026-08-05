@@ -36,7 +36,8 @@ interface BoardOrder {
 interface Rider {
   id: string;
   name: string | null;
-  phone: string;
+  phone: string | null;
+  email: string | null;
 }
 
 const COLUMNS: OrderStatus[] = ["pending_payment", "confirmed", "preparing", "ready", "out_for_delivery"];
