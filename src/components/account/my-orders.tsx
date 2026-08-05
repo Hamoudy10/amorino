@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatKES, formatDateTime } from "@/lib/utils";
-import { STATUS_LABELS } from "@/lib/orders";
+import { ORDER_STATUS_LABELS } from "@/types";
 
 interface MyOrder {
   id: string;
@@ -107,7 +107,7 @@ export function MyOrders() {
               <div className="flex items-center gap-2">
                 <span className="font-semibold">{order.orderNumber}</span>
                 <Badge variant={STATUS_VARIANT[order.status] ?? "outline"}>
-                  {STATUS_LABELS[order.status as keyof typeof STATUS_LABELS] ?? order.status}
+                  {ORDER_STATUS_LABELS[order.status as keyof typeof ORDER_STATUS_LABELS] ?? order.status}
                 </Badge>
                 {order.paymentStatus === "pending" && order.status === "pending_payment" && (
                   <Badge variant="outline">Unpaid</Badge>
