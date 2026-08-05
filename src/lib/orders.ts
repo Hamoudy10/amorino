@@ -5,6 +5,7 @@ import {
   orders,
   orderItems,
   activityLogs,
+  users,
   type OrderStatus,
 } from "@/db/schema";
 import { generateOrderNumber } from "@/lib/utils";
@@ -198,6 +199,23 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * activity_logs.user_id is a FK to users.id (UUID). Callers may pass a Clerk
+ * ID (user_...) — resolve it to the DB user id; anything unresolvable logs
+ * as null rather than failing the whole operation.
+ */
+async function resolveActorUserId(actorUserId?: string | null): Promise<string | null> {
+  if (!actorUserId) return null;
+  if (UUID_RE.test(actorUserId)) return actorUserId;
+  if (actorUserId.startsWith("user_")) {
+    const [row] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, actorUserId)).limit(1);
+    return row?.id ?? null;
+  }
+  return null;
+}
+
 export async function updateOrderStatus(input: {
   orderId: string;
   status: OrderStatus;
@@ -226,7 +244,7 @@ export async function updateOrderStatus(input: {
 
   await db.insert(activityLogs).values({
     orderId: updated.id,
-    userId: input.actorUserId ?? null,
+    userId: await resolveActorUserId(input.actorUserId),
     action: "status_changed",
     metadata: { from: current, to: input.status },
   });
@@ -263,7 +281,7 @@ export async function assignRider(input: {
     .returning();
   await db.insert(activityLogs).values({
     orderId: updated.id,
-    userId: input.actorUserId ?? null,
+    userId: await resolveActorUserId(input.actorUserId),
     action: "rider_assigned",
     metadata: { riderId: input.riderId },
   });
