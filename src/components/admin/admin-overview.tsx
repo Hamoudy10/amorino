@@ -65,9 +65,9 @@ export function AdminOverview() {
         const reviewJson = await reviewRes.json();
         const compJson = await compRes.json();
         setSummary(sumJson.ok ? sumJson.data.summary : null);
-        setOrders(orderJson.ok ? orderJson.data : []);
-        setReviews(reviewJson.ok ? reviewJson.data : []);
-        setComplaints(compJson.ok ? compJson.data : []);
+        setOrders(orderJson.ok && Array.isArray(orderJson.data) ? orderJson.data : []);
+        setReviews(reviewJson.ok && Array.isArray(reviewJson.data) ? reviewJson.data : []);
+        setComplaints(compJson.ok && Array.isArray(compJson.data) ? compJson.data : []);
       } catch {
         // handled by empty states
       } finally {

@@ -69,7 +69,7 @@ export function OrderBoard() {
       if (query.trim()) params.set("q", query.trim());
       const res = await fetch(`/api/admin/orders?${params.toString()}`, { cache: "no-store" });
       const json = await res.json();
-      if (json.ok) setOrders(json.data);
+      if (json.ok) setOrders(Array.isArray(json.data) ? json.data : []);
     } catch {
       // keep existing data
     } finally {

@@ -50,7 +50,7 @@ export function MyOrders() {
     try {
       const res = await fetch("/api/account/orders", { cache: "no-store" });
       const json = await res.json();
-      if (json.ok) setOrders(json.data);
+      if (json.ok) setOrders(Array.isArray(json.data) ? json.data : []);
     } catch {
       // ignored
     } finally {
