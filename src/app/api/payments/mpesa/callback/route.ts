@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     // Unknown checkout request — acknowledge to Safaricom, nothing to process.
     return NextResponse.json({ ok: true, ignored: true });
   }
-  if (payment.status === "success" || payment.status === "failed") {
+  if (payment.status === "success") {
     // Idempotent: Safaricom may resend callbacks.
     return NextResponse.json({ ok: true, ignored: true });
   }

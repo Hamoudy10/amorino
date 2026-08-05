@@ -56,8 +56,11 @@ export async function GET(req: NextRequest) {
       return ok({ status: "success", paymentStatus: settled.order?.paymentStatus ?? "paid" });
     }
 
-    if (result.ResultCode !== "1037" && result.ResultCode !== "1") {
-      // 1037 = request cancelled by user; 1 = still in progress
+    // Only terminal failures are: 1032 = request cancelled by user,
+    // 1037 = timed out. Everything else (4999 "still under processing",
+    // 1 = in progress, 2001, etc.) means the payment is not finished yet —
+    // keep polling so a late approval still succeeds.
+    if (result.ResultCode === "1032" || result.ResultCode === "1037") {
       await markPaymentFailed({
         paymentId: payment.id,
         resultCode: String(result.ResultCode),
