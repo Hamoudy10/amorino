@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUserWithDbId();
     if (!user || !user.dbUserId) return fail("Rider authentication required", 401);
-    if (!user.phone) return fail("Rider profile has no phone number", 400);
 
     const ip = getClientIp(req);
     const allowed = await rateLimit(`rl:riderloc:${user.dbUserId}`, 30, 60);
