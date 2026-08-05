@@ -3,8 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { ShoppingBag, Menu, X, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { useClerk } from "@clerk/nextjs";
 import { useCart } from "@/components/providers/cart-provider";
 import { WhatsAppButton } from "@/components/ui/whatsapp-button";
 
@@ -18,6 +19,21 @@ const NAV = [
 export function Header() {
   const { count, open } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, isSignedIn, signOut } = useClerk();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const role = (user?.publicMetadata?.role as string | undefined) ?? "customer";
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
@@ -50,6 +66,77 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <WhatsAppButton className="hidden md:inline-flex" />
+
+          {/* User menu */}
+          <div className="relative" ref={userMenuRef}>
+            {isSignedIn && user ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  aria-label="Account menu"
+                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border bg-accent text-sm font-bold text-accent-foreground"
+                >
+                  {user.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.imageUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    (user.firstName?.[0] ?? "A")
+                  )}
+                </button>
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      className="absolute right-0 top-12 z-50 w-52 overflow-hidden rounded-lg border bg-card shadow-lg"
+                    >
+                      <div className="border-b px-4 py-2.5">
+                        <p className="truncate text-sm font-semibold">
+                          {user.firstName} {user.lastName}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground capitalize">{role}</p>
+                      </div>
+                      {(role === "owner" || role === "admin") && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-muted-foreground hover:bg-accent"
+                        >
+                          <LayoutDashboard className="h-4 w-4" /> Admin Dashboard
+                        </Link>
+                      )}
+                      {role === "rider" && (
+                        <Link
+                          href="/rider"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-muted-foreground hover:bg-accent"
+                        >
+                          <ChevronDown className="h-4 w-4" /> Rider Portal
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => void signOut()}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10"
+                      >
+                        <LogOut className="h-4 w-4" /> Sign out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            ) : (
+              <Link
+                href="/sign-in"
+                className="flex h-10 items-center rounded-md border px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                Sign in
+              </Link>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={open}
