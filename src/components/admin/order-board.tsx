@@ -43,7 +43,7 @@ interface Rider {
   email: string | null;
 }
 
-const COLUMNS: OrderStatus[] = ["pending_payment", "confirmed", "preparing", "ready", "out_for_delivery"];
+const COLUMNS: OrderStatus[] = ["pending_payment", "paid", "confirmed", "preparing", "ready", "out_for_delivery"];
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending_payment: ["paid", "cancelled"],
@@ -332,11 +332,29 @@ export function OrderBoard() {
               <div className="space-y-3">
                 {ungrouped.map((order) => (
                   <Card key={order.id}>
-                    <CardContent className="py-3 text-sm">
-                      <p className="font-semibold">{order.orderNumber}</p>
-                      <Badge variant="secondary" className="mt-1">
-                        {ORDER_STATUS_LABELS[order.status]}
-                      </Badge>
+                    <CardContent className="space-y-2 py-3 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold">{order.orderNumber}</p>
+                        <Badge variant="secondary">
+                          {ORDER_STATUS_LABELS[order.status]}
+                        </Badge>
+                      </div>
+                      {TRANSITIONS[order.status] && TRANSITIONS[order.status].length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {TRANSITIONS[order.status].map((next) => (
+                            <Button
+                              key={next}
+                              size="sm"
+                              variant={next === "cancelled" ? "destructive" : "default"}
+                              onClick={() => void changeStatus(order, next)}
+                              disabled={busyId === order.id}
+                            >
+                              {busyId === order.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                              {ORDER_STATUS_LABELS[next]}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
