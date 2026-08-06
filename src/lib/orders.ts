@@ -8,7 +8,7 @@ import {
   users,
   type OrderStatus,
 } from "@/db/schema";
-import { generateOrderNumber } from "@/lib/utils";
+import { generateOrderNumber, normalizePhone } from "@/lib/utils";
 import { calculateDeliveryFee, haversineKm, CAFE_COORDS, getSettings } from "@/lib/settings";
 import { emitOrderEvent } from "@/lib/realtime";
 import { enqueueJob } from "@/lib/qstash";
@@ -371,6 +371,7 @@ export async function trackOrder(orderNumber: string, phone: string): Promise<Tr
       status: orders.status,
       type: orders.type,
       customerName: orders.customerName,
+      customerPhone: orders.customerPhone,
       total: orders.total,
       paymentStatus: orders.paymentStatus,
       estimatedReadyAt: orders.estimatedReadyAt,
