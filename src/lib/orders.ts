@@ -127,7 +127,7 @@ export async function createOrder(input: CreateOrderInput) {
       orderNumber,
       userId: dbUserId,
       customerName: input.customerName,
-      customerPhone: input.customerPhone,
+      customerPhone: normalizePhone(input.customerPhone),
       customerEmail: input.customerEmail ?? null,
       type: input.type,
       status: input.paymentMethod === "cash" ? "confirmed" : "pending_payment",
@@ -382,10 +382,12 @@ export async function trackOrder(orderNumber: string, phone: string): Promise<Tr
     })
     .from(orders)
     .leftJoin(users, eq(orders.riderId, users.id))
-    .where(and(eq(orders.orderNumber, orderNumber), eq(orders.customerPhone, phone)))
+    .where(eq(orders.orderNumber, orderNumber))
     .limit(1);
   if (rows.length === 0) return null;
   const order = rows[0];
+  // Phones may be stored as 07.. / 2547.. / +2547.. — compare normalized.
+  if (normalizePhone(order.customerPhone) !== normalizePhone(phone)) return null;
   const items = await db
     .select({ name: orderItems.name, quantity: orderItems.quantity, totalPrice: orderItems.totalPrice })
     .from(orderItems)

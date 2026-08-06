@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     if (!order) return fail("Order not found", 404);
-    if (order.customerPhone !== parsed.data.phone) {
+    if (normalizePhone(order.customerPhone) !== normalizePhone(parsed.data.phone)) {
       return fail("This order does not match the provided phone number", 403);
     }
     if (order.status !== "delivered" && order.status !== "picked_up") {
