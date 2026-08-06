@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Smartphone, Banknote, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Smartphone, Banknote, Loader2, CheckCircle2, XCircle, Clock, MapPin, LocateFixed } from "lucide-react";
+import { useLoadScript, Autocomplete, type Libraries } from "@react-google-maps/api";
 import { useCart } from "@/components/providers/cart-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ import type { OrderType, PaymentMethod } from "@/types";
 type Step = "form" | "submitting" | "stk" | "success" | "error";
 
 const CAFE_COORDS = { lat: -4.0435, lng: 39.6682 };
+
+const PLACES_LIBRARIES: Libraries = ["places"];
 
 function maskPhone(phone: string): string {
   const p = normalizePhone(phone);
@@ -67,6 +70,7 @@ export default function CheckoutPage() {
   const [deliveryFee, setDeliveryFee] = React.useState<number | null>(null);
   const [feeStatus, setFeeStatus] = React.useState<"idle" | "calculating" | "done" | "out_of_range">("idle");
   const [switchingToCash, setSwitchingToCash] = React.useState(false);
+  const [locating, setLocating] = React.useState(false);
 
   const total = subtotal + (deliveryFee ?? 0) + tip;
 
@@ -95,6 +99,59 @@ export default function CheckoutPage() {
     }
   };
 
+  // Google Maps: places autocomplete for the delivery address.
+  const { isLoaded: mapsLoaded } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
+    libraries: PLACES_LIBRARIES,
+  });
+  const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null);
+  const [locatingError, setLocatingError] = React.useState("");
+
+  const onPlaceChanged = () => {
+    const place = autocompleteRef.current?.getPlace();
+    if (!place) return;
+    if (place.formatted_address) update({ deliveryAddress: place.formatted_address });
+    if (place.geometry?.location) {
+      update({
+        deliveryLat: String(place.geometry.location.lat()),
+        deliveryLng: String(place.geometry.location.lng()),
+      });
+    }
+  };
+
+  const useMyLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setLocatingError("Geolocation not supported on this device");
+      return;
+    }
+    setLocating(true);
+    setLocatingError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        update({ deliveryLat: String(lat), deliveryLng: String(lng) });
+        // Reverse-geocode to a readable address.
+        if (mapsLoaded && window.google?.maps?.Geocoder) {
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === "OK" && results?.[0]?.formatted_address) {
+              update({ deliveryAddress: results[0].formatted_address });
+            }
+            setLocating(false);
+          });
+        } else {
+          setLocating(false);
+        }
+      },
+      () => {
+        setLocating(false);
+        setLocatingError("Could not get your location — allow location access and try again.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const hasGoogleMaps = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
 
   React.useEffect(() => {
@@ -121,38 +178,6 @@ export default function CheckoutPage() {
 
   // Google Places autocomplete for delivery address
   const addressRef = React.useRef<HTMLInputElement>(null);
-  React.useEffect(() => {
-    if (!hasGoogleMaps || form.type !== "delivery" || !addressRef.current) return;
-    let autocomplete: google.maps.places.Autocomplete | null = null;
-    let unmounted = false;
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
-    script.async = true;
-    script.onload = () => {
-      if (unmounted || !addressRef.current) return;
-      autocomplete = new google.maps.places.Autocomplete(addressRef.current, {
-        componentRestrictions: { country: "ke" },
-        fields: ["formatted_address", "geometry"],
-      });
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete?.getPlace();
-        if (place?.formatted_address) setForm((f) => ({ ...f, deliveryAddress: place.formatted_address ?? "" }));
-        if (place?.geometry?.location) {
-          setForm((f) => ({
-            ...f,
-            deliveryLat: String(place.geometry!.location!.lat()),
-            deliveryLng: String(place.geometry!.location!.lng()),
-          }));
-        }
-      });
-    };
-    document.head.appendChild(script);
-    return () => {
-      unmounted = true;
-      document.head.removeChild(script);
-      autocomplete?.unbindAll();
-    };
-  }, [hasGoogleMaps, form.type]);
 
   const update = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -435,16 +460,53 @@ export default function CheckoutPage() {
               {form.type === "delivery" && (
                 <div>
                   <Label htmlFor="address">Delivery address *</Label>
-                  <Input
-                    id="address"
-                    ref={addressRef}
-                    value={form.deliveryAddress}
-                    onChange={(e) => update({ deliveryAddress: e.target.value })}
-                    placeholder="Estate, building, street… (Mombasa)"
-                  />
+                  {hasGoogleMaps && mapsLoaded ? (
+                    <Autocomplete
+                      onLoad={(a) => {
+                        autocompleteRef.current = a;
+                      }}
+                      onPlaceChanged={onPlaceChanged}
+                      options={{ componentRestrictions: { country: "ke" }, fields: ["formatted_address", "geometry"] }}
+                    >
+                      <Input
+                        id="address"
+                        ref={addressRef}
+                        value={form.deliveryAddress}
+                        onChange={(e) => update({ deliveryAddress: e.target.value })}
+                        placeholder="Start typing — e.g. Naivas City Mall, Mombasa…"
+                        autoComplete="off"
+                      />
+                    </Autocomplete>
+                  ) : (
+                    <Input
+                      id="address"
+                      ref={addressRef}
+                      value={form.deliveryAddress}
+                      onChange={(e) => update({ deliveryAddress: e.target.value })}
+                      placeholder="Estate, building, street… (Mombasa)"
+                      autoComplete="off"
+                    />
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={useMyLocation}
+                      disabled={locating}
+                      className="gap-1.5"
+                    >
+                      {locating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LocateFixed className="h-3.5 w-3.5" />}
+                      Use my current location
+                    </Button>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" /> Suggestions appear as you type
+                    </span>
+                  </div>
+                  {locatingError && <p className="mt-1 text-xs text-destructive">{locatingError}</p>}
                   {!hasGoogleMaps && (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Optional: add exact delivery lat/lng for live tracking &amp; fee calculation.
+                      Google Maps is not configured — type your address manually.
                     </p>
                   )}
                   {hasGoogleMaps && (
