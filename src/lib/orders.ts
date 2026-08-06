@@ -159,7 +159,9 @@ export async function createOrder(input: CreateOrderInput) {
     metadata: { type: input.type, paymentMethod: input.paymentMethod, total },
   });
 
-  await emitOrderEvent({
+  // Notifications and realtime must NEVER block order creation/payment —
+  // fire and forget; failures are logged inside the notification layer.
+  void emitOrderEvent({
     orderId: order.id,
     orderNumber: order.orderNumber,
     status: order.status ?? "pending_payment",
@@ -183,7 +185,7 @@ export async function createOrder(input: CreateOrderInput) {
   }
 
   if (input.paymentMethod === "cash") {
-    await notifyOrderStatus({
+    void notifyOrderStatus({
       orderId: order.id,
       orderNumber: order.orderNumber,
       customerPhone: order.customerPhone,
@@ -280,14 +282,14 @@ export async function updateOrderStatus(input: {
     metadata: { from: current, to: input.status },
   });
 
-  await emitOrderEvent({
+  void emitOrderEvent({
     orderId: updated.id,
     orderNumber: updated.orderNumber,
     status: updated.status ?? input.status,
     updatedAt: now.toISOString(),
   });
 
-  await notifyOrderStatus({
+  void notifyOrderStatus({
     orderId: updated.id,
     orderNumber: updated.orderNumber,
     customerPhone: updated.customerPhone,

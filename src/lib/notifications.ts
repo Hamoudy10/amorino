@@ -59,7 +59,7 @@ export async function sendSms(to: string, message: string): Promise<SendResult> 
           Accept: "application/json",
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        timeout: 15_000,
+        timeout: 8_000,
       }
     );
     const sent = res.data?.SMSMessageData?.Recipients?.[0]?.status === "Success";
@@ -111,7 +111,7 @@ export async function sendWhatsAppTemplate(
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        timeout: 15_000,
+        timeout: 8_000,
       }
     );
     return res.status < 300 ? { ok: true } : { ok: false, error: JSON.stringify(res.data) };
@@ -150,7 +150,7 @@ export async function sendEmail(input: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-        timeout: 15_000,
+        timeout: 8_000,
       }
     );
     return res.status < 300 ? { ok: true } : { ok: false, error: JSON.stringify(res.data) };
@@ -209,6 +209,22 @@ function fillTemplate(tpl: string, vars: Record<string, string>): string {
 }
 
 export async function notifyOrderStatus(input: {
+  orderId: string;
+  orderNumber: string;
+  customerPhone: string;
+  customerEmail?: string | null;
+  userId?: string | null;
+  status: string;
+  etaMinutes?: number | null;
+}): Promise<void> {
+  try {
+    await notifyOrderStatusInner(input);
+  } catch (err) {
+    console.error("[notify]", input.status, err);
+  }
+}
+
+async function notifyOrderStatusInner(input: {
   orderId: string;
   orderNumber: string;
   customerPhone: string;
@@ -293,3 +309,4 @@ export async function notifyOrderStatus(input: {
     });
   }
 }
+

@@ -59,14 +59,15 @@ export async function markPaymentSuccess(input: {
         metadata: { receipt: input.mpesaReceiptNumber, amount: payment.amount },
       });
 
-      await emitOrderEvent({
+      // Notifications and realtime must never block payment processing.
+      void emitOrderEvent({
         orderId: order.id,
         orderNumber: order.orderNumber,
         status: "confirmed",
         updatedAt: now.toISOString(),
       });
 
-      await notifyOrderStatus({
+      void notifyOrderStatus({
         orderId: order.id,
         orderNumber: order.orderNumber,
         customerPhone: order.customerPhone,
