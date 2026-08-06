@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   PackageOpen,
   MapPin,
@@ -9,14 +10,18 @@ import {
   Star,
   AlertTriangle,
   RefreshCw,
-  ChevronRight,
+  Loader2,
+  RotateCcw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/sonner";
+import { useCart } from "@/components/providers/cart-provider";
 import { formatKES, formatDateTime } from "@/lib/utils";
 import { ORDER_STATUS_LABELS } from "@/types";
+import type { MenuItem } from "@/types";
 
 interface MyOrder {
   id: string;
@@ -42,8 +47,11 @@ const STATUS_VARIANT: Record<string, "default" | "success" | "secondary" | "dest
 };
 
 export function MyOrders() {
+  const router = useRouter();
+  const { addItem, open } = useCart();
   const [orders, setOrders] = React.useState<MyOrder[] | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [reordering, setReordering] = React.useState<string | null>(null);
 
   const fetchOrders = React.useCallback(async () => {
     setLoading(true);
@@ -61,6 +69,46 @@ export function MyOrders() {
   React.useEffect(() => {
     void fetchOrders();
   }, [fetchOrders]);
+
+  const reorder = async (order: MyOrder) => {
+    setReordering(order.id);
+    try {
+      const res = await fetch("/api/orders/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceOrderId: order.id }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        toast.error(json.error ?? "Could not reorder");
+        return;
+      }
+      const items = json.data.items as Array<{
+        menuItemId: string;
+        name: string;
+        quantity: number;
+        options: Array<{ name: string; price: number }>;
+      }>;
+      for (const item of items) {
+        addItem(
+          { id: item.menuItemId, name: item.name, options: item.options } as MenuItem,
+          item.quantity,
+          item.options
+        );
+      }
+      if (json.data.removed?.length > 0) {
+        toast.warning(
+          `${json.data.removed.length} item${json.data.removed.length === 1 ? "" : "s"} no longer available and were skipped`
+        );
+      }
+      open();
+      router.push("/checkout");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setReordering(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -158,10 +206,19 @@ export function MyOrders() {
                     </Button>
                   </>
                 )}
-                <Button asChild size="sm">
-                  <Link href="/menu">
-                    Order again <ChevronRight className="h-3.5 w-3.5" />
-                  </Link>
+                <Button
+                  size="sm"
+                  variant="default"
+                  disabled={reordering === order.id}
+                  onClick={() => void reorder(order)}
+                  className="gap-1.5"
+                >
+                  {reordering === order.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  )}
+                  Order again
                 </Button>
               </div>
             </div>

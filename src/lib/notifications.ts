@@ -162,6 +162,11 @@ export async function sendEmail(input: {
 // ---------------- Order status notifications ----------------
 
 const STATUS_MESSAGES: Record<string, { sms: string; whatsapp: string; title: string }> = {
+  paid: {
+    sms: "Amorino Café: Payment received for order {order} — thank you! We are preparing your food.",
+    whatsapp: "Payment received for order {order}. Thank you! We are preparing your food.",
+    title: "Payment received",
+  },
   confirmed: {
     sms: "Amorino Café: Order {order} confirmed. We are preparing your food! Estimated ready in ~{eta} min.",
     whatsapp: "Your Amorino order {order} is confirmed. We are preparing your food! Estimated ready in ~{eta} min.",
@@ -241,7 +246,9 @@ export async function notifyOrderStatus(input: {
     });
   }
   if (s.notifications.whatsappOnOrder) {
-    const result = await sendWhatsAppTemplate(input.customerPhone, "order_status_update", [
+    const templateName =
+      input.status === "confirmed" ? "order_confirmed" : input.status === "paid" ? "payment_received" : "order_status_update";
+    const result = await sendWhatsAppTemplate(input.customerPhone, templateName, [
       input.orderNumber,
       template.title,
     ]);
@@ -253,6 +260,22 @@ export async function notifyOrderStatus(input: {
       status: result.ok ? "sent" : "failed",
       metadata: { error: result.error },
     });
+
+    // SMS fallback: if WhatsApp failed, try SMS so the customer is still
+    // notified (only when SMS is enabled and the WhatsApp send was not
+    // silently skipped because it is unconfigured — in that case SMS still
+    // fires when enabled).
+    if (!result.ok && s.notifications.smsOnOrder) {
+      const smsResult = await sendSms(input.customerPhone, fillTemplate(template.sms, vars));
+      await logNotification({
+        ...common,
+        type: "sms",
+        title: `${template.title} (fallback)`,
+        body: fillTemplate(template.sms, vars),
+        status: smsResult.ok ? "sent" : "failed",
+        metadata: { error: smsResult.error, fallback: true },
+      });
+    }
   }
   if (s.notifications.emailReceipt && input.customerEmail) {
     const result = await sendEmail({

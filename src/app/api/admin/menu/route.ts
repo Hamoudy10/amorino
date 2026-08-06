@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         options: parsed.data.options,
       })
       .returning();
-    await cacheDelete("menu:public:v1");
+    await cacheDelete("menu:public");
     return ok(created, 201);
   } catch (err) {
     return serverError(err);
@@ -122,7 +122,7 @@ export async function PUT(req: NextRequest) {
       })
       .where(eq(menuItems.id, parsed.data.id))
       .returning();
-    await cacheDelete("menu:public:v1");
+    await cacheDelete("menu:public");
     return ok(updated);
   } catch (err) {
     return serverError(err);
@@ -143,7 +143,7 @@ export async function DELETE(req: NextRequest) {
     } else {
       await db.delete(menuItems).where(eq(menuItems.id, id));
     }
-    await cacheDelete("menu:public:v1");
+    await cacheDelete("menu:public");
     return ok({ deleted: true });
   } catch (err) {
     return serverError(err);

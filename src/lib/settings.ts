@@ -8,6 +8,8 @@ export interface DeliverySettings {
   baseDeliveryFee: number;
   extraFeePerKm: number;
   maxDistanceKm: number;
+  /** Percentage of the tip that goes to the rider (rest to the house). */
+  tipSplitRiderPercent: number;
 }
 
 export interface BusinessSettings {
@@ -61,6 +63,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     baseDeliveryFee: 100,
     extraFeePerKm: 50,
     maxDistanceKm: 10,
+    tipSplitRiderPercent: 80,
   },
   mpesa: {
     shortcode: "174379",

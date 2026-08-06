@@ -12,6 +12,8 @@ import {
   Settings,
   Coffee,
   Map as MapIcon,
+  Zap,
+  Wallet,
 } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 
@@ -20,6 +22,7 @@ export const metadata: Metadata = { title: "Admin Dashboard" };
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ClipboardList },
+  { href: "/admin/payments", label: "Payments", icon: Wallet },
   { href: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/admin/riders", label: "Riders", icon: Bike },
   { href: "/admin/map", label: "Live Map", icon: MapIcon },
@@ -27,6 +30,7 @@ const NAV = [
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/complaints", label: "Complaints", icon: AlertTriangle },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/jobs", label: "Jobs", icon: Zap },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -1,9 +1,24 @@
 import { db } from "@/db";
 import { categories, menuItems } from "@/db/schema";
 import { asc, eq, sql } from "drizzle-orm";
+import { cacheGet, cacheSet } from "@/lib/redis";
 import type { MenuCategoryWithItems } from "@/types";
 
+const MENU_CACHE_KEY = "menu:public";
+const MENU_TTL = 300; // 5 minutes
+
 export async function getPublicMenu(): Promise<MenuCategoryWithItems[]> {
+  // The public menu is read on every page load — serve from Redis and only
+  // fall back to the DB on cache miss. Invalidated on admin menu writes.
+  const cached = await cacheGet<MenuCategoryWithItems[]>(MENU_CACHE_KEY);
+  if (cached) return cached;
+
+  const menu = await fetchMenuFromDb();
+  await cacheSet(MENU_CACHE_KEY, menu, MENU_TTL);
+  return menu;
+}
+
+async function fetchMenuFromDb(): Promise<MenuCategoryWithItems[]> {
   const cats = await db
     .select()
     .from(categories)
@@ -29,6 +44,11 @@ export async function getPublicMenu(): Promise<MenuCategoryWithItems[]> {
       ...c,
       items: (byCategory.get(c.id) ?? []).map((item) => ({ ...item, options: item.options ?? [] })),
     }));
+}
+
+export async function invalidateMenuCache(): Promise<void> {
+  const { cacheDelete } = await import("@/lib/redis");
+  await cacheDelete(MENU_CACHE_KEY);
 }
 
 export async function getPopularItems(limit = 6): Promise<MenuCategoryWithItems["items"]> {

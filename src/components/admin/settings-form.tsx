@@ -180,6 +180,11 @@ export function SettingsForm() {
                 <Label htmlFor="d-max">Max delivery distance (km)</Label>
                 <Input id="d-max" type="number" min={1} value={data.delivery.maxDistanceKm} onChange={(e) => set("delivery", { ...data.delivery, maxDistanceKm: Number(e.target.value) })} />
               </div>
+              <div>
+                <Label htmlFor="d-tip">Tip split to rider (%)</Label>
+                <Input id="d-tip" type="number" min={0} max={100} value={data.delivery.tipSplitRiderPercent} onChange={(e) => set("delivery", { ...data.delivery, tipSplitRiderPercent: Number(e.target.value) })} />
+                <p className="mt-1 text-xs text-muted-foreground">Rider&apos;s share of each tip; the rest stays with the house.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

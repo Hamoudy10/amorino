@@ -7,6 +7,9 @@ import { ok, fail, serverError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { sendWhatsAppTemplate, logNotification } from "@/lib/notifications";
+import { rateLimit } from "@/lib/redis";
+import { resolveActorUserId } from "@/lib/orders";
+import { normalizePhone } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +18,10 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return fail("Invalid complaint data", 400, parsed.error.flatten());
     }
+
+    // Anti-spam: max 5 complaints per day per phone.
+    const allowed = await rateLimit(`rl:complaint:${normalizePhone(parsed.data.phone)}`, 5, 86400);
+    if (!allowed) return fail("Too many complaints. Please try again later.", 429);
 
     let orderId: string | null = null;
     if (parsed.data.orderNumber) {
@@ -32,7 +39,7 @@ export async function POST(req: NextRequest) {
       .insert(complaints)
       .values({
         orderId,
-        userId: session?.id ?? null,
+        userId: await resolveActorUserId(session?.id),
         phone: parsed.data.phone,
         category: parsed.data.category,
         description: parsed.data.description,

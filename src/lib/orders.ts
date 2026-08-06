@@ -9,8 +9,9 @@ import {
   type OrderStatus,
 } from "@/db/schema";
 import { generateOrderNumber } from "@/lib/utils";
-import { calculateDeliveryFee, haversineKm, CAFE_COORDS } from "@/lib/settings";
+import { calculateDeliveryFee, haversineKm, CAFE_COORDS, getSettings } from "@/lib/settings";
 import { emitOrderEvent } from "@/lib/realtime";
+import { enqueueJob } from "@/lib/qstash";
 import { notifyOrderStatus } from "@/lib/notifications";
 
 export interface CartItemInput {
@@ -113,6 +114,13 @@ export async function createOrder(input: CreateOrderInput) {
   // resolve it to the DB user id first (null for guests).
   const dbUserId = await resolveActorUserId(input.userId);
 
+  // Tip split: rider gets the configured percentage, house keeps the rest.
+  const s = await getSettings();
+  const tip = input.tip ?? 0;
+  const riderPercent = s.delivery.tipSplitRiderPercent ?? 80;
+  const tipRiderShare = Math.round((tip * riderPercent) / 100);
+  const tipHouseShare = tip - tipRiderShare;
+
   const [order] = await db
     .insert(orders)
     .values({
@@ -128,6 +136,8 @@ export async function createOrder(input: CreateOrderInput) {
       subtotal: subtotal.toFixed(2),
       deliveryFee: deliveryFee.toFixed(2),
       tip: (input.tip ?? 0).toFixed(2),
+      tipRiderShare: tipRiderShare.toFixed(2),
+      tipHouseShare: tipHouseShare.toFixed(2),
       discount: "0",
       total: total.toFixed(2),
       deliveryAddress: input.deliveryAddress ?? null,
@@ -154,7 +164,23 @@ export async function createOrder(input: CreateOrderInput) {
     orderNumber: order.orderNumber,
     status: order.status ?? "pending_payment",
     updatedAt: new Date().toISOString(),
+    action: "order_created",
   });
+
+  // Abandoned-payment reminder for M-Pesa orders that stall (10 min).
+  if (input.paymentMethod === "mpesa") {
+    void enqueueJob(
+      "abandoned-payment",
+      {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerPhone: order.customerPhone,
+        customerEmail: order.customerEmail,
+        userId: order.userId,
+      },
+      600
+    );
+  }
 
   if (input.paymentMethod === "cash") {
     await notifyOrderStatus({
@@ -211,7 +237,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * ID (user_...) — resolve it to the DB user id; anything unresolvable logs
  * as null rather than failing the whole operation.
  */
-async function resolveActorUserId(actorUserId?: string | null): Promise<string | null> {
+export async function resolveActorUserId(actorUserId?: string | null): Promise<string | null> {
   if (!actorUserId) return null;
   if (UUID_RE.test(actorUserId)) return actorUserId;
   if (actorUserId.startsWith("user_")) {
@@ -270,6 +296,33 @@ export async function updateOrderStatus(input: {
     status: input.status,
     etaMinutes: null,
   });
+
+  // Background follow-ups for key transitions.
+  if (input.status === "delivered" || input.status === "picked_up") {
+    void enqueueJob(
+      "review-request",
+      {
+        orderId: updated.id,
+        orderNumber: updated.orderNumber,
+        customerPhone: updated.customerPhone,
+        customerEmail: updated.customerEmail,
+        userId: updated.userId,
+      },
+      3600
+    );
+  } else if (input.status === "confirmed" || input.status === "preparing") {
+    void enqueueJob(
+      "idle-order",
+      { orderId: updated.id, orderNumber: updated.orderNumber },
+      1200
+    );
+  } else if (input.status === "out_for_delivery") {
+    void enqueueJob(
+      "rider-checkin",
+      { orderId: updated.id, riderId: updated.riderId, orderNumber: updated.orderNumber },
+      300
+    );
+  }
 
   return true;
 }

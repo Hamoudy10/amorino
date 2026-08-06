@@ -31,6 +31,12 @@ export async function POST(req: NextRequest) {
       return fail("Invalid payment request", 400, parsed.error.flatten());
     }
 
+    // Extra guard: max 3 STK pushes per phone per minute (prevents STK spam).
+    const phoneAllowed = await rateLimit(`rl:mpesa:phone:${parsed.data.phone}`, 3, 60);
+    if (!phoneAllowed) {
+      return fail("Too many payment requests for this number. Please wait.", 429);
+    }
+
     const [order] = await db
       .select()
       .from(orders)

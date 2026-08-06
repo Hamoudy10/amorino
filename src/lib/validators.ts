@@ -120,6 +120,7 @@ export const settingsUpdateSchema = z.object({
     baseDeliveryFee: z.coerce.number().min(0).max(100000),
     extraFeePerKm: z.coerce.number().min(0).max(10000),
     maxDistanceKm: z.coerce.number().min(1).max(100),
+    tipSplitRiderPercent: z.coerce.number().min(0).max(100).default(80),
   }),
   mpesa: z.object({
     shortcode: z.string(),

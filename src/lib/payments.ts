@@ -72,7 +72,7 @@ export async function markPaymentSuccess(input: {
         customerPhone: order.customerPhone,
         customerEmail: order.customerEmail,
         userId: order.userId,
-        status: "confirmed",
+        status: "paid",
         etaMinutes: order.estimatedReadyAt
           ? Math.max(1, Math.round((order.estimatedReadyAt.getTime() - now.getTime()) / 60000))
           : null,

@@ -5,6 +5,9 @@ import { eq } from "drizzle-orm";
 import { createReviewSchema } from "@/lib/validators";
 import { ok, fail, serverError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth";
+import { rateLimit } from "@/lib/redis";
+import { resolveActorUserId } from "@/lib/orders";
+import { normalizePhone } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +16,10 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return fail("Invalid review data", 400, parsed.error.flatten());
     }
+
+    // Anti-spam: max 3 reviews per hour per phone.
+    const allowed = await rateLimit(`rl:review:${normalizePhone(parsed.data.phone)}`, 3, 3600);
+    if (!allowed) return fail("Too many reviews. Please try again later.", 429);
 
     const [order] = await db
       .select()
@@ -38,7 +45,7 @@ export async function POST(req: NextRequest) {
       .insert(reviews)
       .values({
         orderId: order.id,
-        userId: session?.id ?? null,
+        userId: await resolveActorUserId(session?.id),
         rating: parsed.data.rating,
         comment: parsed.data.comment || null,
       })

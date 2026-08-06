@@ -11,10 +11,15 @@ export interface JobPayload {
 }
 
 /**
- * Enqueue a background job (e.g. notification fan-out). Falls back to no-op
- * when QStash is not configured.
+ * Enqueue a background job (e.g. notification fan-out). `delaySeconds` defers
+ * execution (QStash supports up to 5 days). Falls back to no-op when QStash
+ * is not configured.
  */
-export async function enqueueJob(job: string, payload: Record<string, unknown>): Promise<boolean> {
+export async function enqueueJob(
+  job: string,
+  payload: Record<string, unknown>,
+  delaySeconds = 0
+): Promise<boolean> {
   const client = getQStash();
   if (!client) return false;
   try {
@@ -22,6 +27,7 @@ export async function enqueueJob(job: string, payload: Record<string, unknown>):
     await client.publishJSON({
       url: `${baseUrl}/api/jobs/${job}`,
       body: { job, payload } satisfies JobPayload,
+      delay: delaySeconds > 0 ? delaySeconds : undefined,
     });
     return true;
   } catch {

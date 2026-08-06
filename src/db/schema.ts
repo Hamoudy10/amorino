@@ -89,6 +89,8 @@ export const orders = pgTable(
     subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
     deliveryFee: decimal("delivery_fee", { precision: 10, scale: 2 }).default("0"),
     tip: decimal("tip", { precision: 10, scale: 2 }).default("0"),
+    tipRiderShare: decimal("tip_rider_share", { precision: 10, scale: 2 }).default("0"),
+    tipHouseShare: decimal("tip_house_share", { precision: 10, scale: 2 }).default("0"),
     discount: decimal("discount", { precision: 10, scale: 2 }).default("0"),
     total: decimal("total", { precision: 10, scale: 2 }).notNull(),
     deliveryAddress: text("delivery_address"),

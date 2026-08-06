@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search, RefreshCw, ChevronRight, Loader2 } from "lucide-react";
+import { Search, RefreshCw, ChevronRight, Loader2, Printer, Volume2, VolumeX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 import { toast } from "@/components/ui/sonner";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types";
 import { formatKES, formatDateTime } from "@/lib/utils";
+import { subscribeToAllOrders } from "@/lib/realtime";
 
 interface BoardOrder {
   id: string;
@@ -27,6 +28,7 @@ interface BoardOrder {
   paymentStatus: string | null;
   total: string;
   tip: string;
+  tipRiderShare: string;
   deliveryAddress: string | null;
   riderId: string | null;
   riderName: string | null;
@@ -62,6 +64,15 @@ export function OrderBoard() {
   const [query, setQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("active");
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [muted, setMuted] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      setMuted(window.localStorage.getItem("amorino:admin-mute") === "1");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const fetchData = React.useCallback(async () => {
     try {
@@ -98,6 +109,25 @@ export function OrderBoard() {
     const interval = setInterval(() => void fetchData(), 15_000);
     return () => clearInterval(interval);
   }, [fetchData, fetchRiders]);
+
+  // Real-time new-order chime (muteable, persisted).
+  React.useEffect(() => {
+    const unsubscribe = subscribeToAllOrders((eventType) => {
+      if (eventType === "INSERT") {
+        void fetchData();
+        try {
+          const muted = window.localStorage.getItem("amorino:admin-mute") === "1";
+          if (!muted) {
+            const audio = new Audio("/sounds/order-chime.wav");
+            void audio.play().catch(() => undefined);
+          }
+        } catch {
+          // ignore
+        }
+      }
+    });
+    return () => unsubscribe?.();
+  }, [fetchData]);
 
   const changeStatus = async (order: BoardOrder, status: OrderStatus) => {
     setBusyId(order.id);
@@ -178,6 +208,18 @@ export function OrderBoard() {
           <Button variant="outline" size="icon" onClick={() => void fetchData()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              const muted = window.localStorage.getItem("amorino:admin-mute") === "1";
+              window.localStorage.setItem("amorino:admin-mute", muted ? "0" : "1");
+              setMuted(!muted);
+            }}
+            title={muted ? "Unmute new-order chime" : "Mute new-order chime"}
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
 
@@ -226,6 +268,9 @@ export function OrderBoard() {
                         {Number(order.tip) > 0 && (
                           <span className="text-xs text-muted-foreground">
                             incl. {formatKES(order.tip)} tip
+                            {Number(order.tipRiderShare) > 0 && (
+                              <span className="text-success"> · rider {formatKES(order.tipRiderShare)}</span>
+                            )}
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground">{order.deliveryAddress ?? "Pickup"}</span>
@@ -251,6 +296,15 @@ export function OrderBoard() {
                       </div>
 
                       <div className="flex flex-wrap gap-1.5 pt-1">
+                        <a
+                          href={`/api/admin/orders/${order.id}/kot`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Print kitchen order ticket"
+                          className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs font-medium transition-colors hover:bg-accent"
+                        >
+                          <Printer className="h-3.5 w-3.5" /> KOT
+                        </a>
                         {TRANSITIONS[order.status]?.map((next) => (
                           <Button
                             key={next}

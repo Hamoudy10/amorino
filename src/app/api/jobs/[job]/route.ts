@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Receiver } from "@upstash/qstash";
-import { handleNotifyOrder } from "@/lib/jobs";
+import {
+  handleNotifyOrder,
+  handleReviewRequest,
+  handleAbandonedPayment,
+  handleIdleOrder,
+  handleRiderCheckin,
+  handleSweep,
+} from "@/lib/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +21,21 @@ async function dispatch(job: string, req: NextRequest) {
     switch (job) {
       case "notify-order-status":
         await handleNotifyOrder(body as never);
+        break;
+      case "review-request":
+        await handleReviewRequest(body as never);
+        break;
+      case "abandoned-payment":
+        await handleAbandonedPayment(body as never);
+        break;
+      case "idle-order":
+        await handleIdleOrder(body as never);
+        break;
+      case "rider-checkin":
+        await handleRiderCheckin(body as never);
+        break;
+      case "sweep":
+        await handleSweep();
         break;
       default:
         return NextResponse.json({ ok: false, error: `Unknown job: ${job}` }, { status: 400 });

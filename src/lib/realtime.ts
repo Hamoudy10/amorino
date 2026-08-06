@@ -22,6 +22,7 @@ export interface OrderChangePayload {
   orderNumber: string;
   status: string;
   updatedAt: string;
+  action?: string;
 }
 
 /**
@@ -59,6 +60,49 @@ export function subscribeToOrder(
       (payload) => {
         const row = payload.new as Record<string, unknown>;
         callback({
+          orderId: String(row.id),
+          orderNumber: String(row.order_number ?? ""),
+          status: String(row.status ?? ""),
+          updatedAt: String(row.updated_at ?? new Date().toISOString()),
+        });
+      }
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/**
+ * All-orders listener (admin board): fires on every insert/update of the
+ * orders table with the event type and the changed row.
+ */
+export function subscribeToAllOrders(
+  callback: (eventType: "INSERT" | "UPDATE", payload: OrderChangePayload) => void
+): (() => void) | null {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const channel = sb
+    .channel("orders:all")
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "orders" },
+      (payload) => {
+        const row = payload.new as Record<string, unknown>;
+        callback("INSERT", {
+          orderId: String(row.id),
+          orderNumber: String(row.order_number ?? ""),
+          status: String(row.status ?? ""),
+          updatedAt: String(row.created_at ?? new Date().toISOString()),
+        });
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "orders" },
+      (payload) => {
+        const row = payload.new as Record<string, unknown>;
+        callback("UPDATE", {
           orderId: String(row.id),
           orderNumber: String(row.order_number ?? ""),
           status: String(row.status ?? ""),
