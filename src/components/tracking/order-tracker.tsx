@@ -120,13 +120,17 @@ function useOrderTracker(orderNumber: string, phone: string) {
 export function OrderTracker({ orderNumber, phone }: { orderNumber: string; phone: string }) {
   const { order, loading, error } = useOrderTracker(orderNumber, phone);
   const [riderPos, setRiderPos] = React.useState<{ lat: number; lng: number } | null>(null);
+  const [riderUpdatedAt, setRiderUpdatedAt] = React.useState<number | null>(null);
 
   const steps = order?.type === "delivery" ? DELIVERY_STEPS : PICKUP_STEPS;
   const currentIndex = order ? steps.indexOf(order.status) : -1;
 
+  // Live rider position: poll from "ready" (rider may start moving early)
+  // through delivery. Every response refreshes the position + timestamp.
   React.useEffect(() => {
-    if (!order || order.status !== "out_for_delivery") {
+    if (!order || (order.status !== "ready" && order.status !== "out_for_delivery")) {
       setRiderPos(null);
+      setRiderUpdatedAt(null);
       return;
     }
     const poll = async () => {
@@ -135,6 +139,7 @@ export function OrderTracker({ orderNumber, phone }: { orderNumber: string; phon
         const json = await res.json();
         if (json.ok && json.data) {
           setRiderPos({ lat: Number(json.data.lat), lng: Number(json.data.lng) });
+          setRiderUpdatedAt(Date.now());
         }
       } catch {
         // ignore; map will keep last known position
@@ -274,14 +279,33 @@ export function OrderTracker({ orderNumber, phone }: { orderNumber: string; phon
               <CardHeader>
                 <CardTitle>Live Delivery Tracking</CardTitle>
                 <CardDescription>
-                  {order.status === "out_for_delivery"
-                    ? riderPos
-                      ? "Rider location updates every ~10 seconds."
-                      : "Rider location appears once they start moving."
-                    : "Your route from Amorino Café — rider location appears once the order is out for delivery."}
+                  {riderPos
+                    ? "Rider location updates every ~10 seconds."
+                    : "Rider location appears once they start moving."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {riderPos ? (
+                  <>
+                    <p className="mb-2 flex items-center gap-2 text-xs font-medium text-success">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                      </span>
+                      Rider live
+                      {riderUpdatedAt && (
+                        <span className="text-muted-foreground">
+                          · updated {Math.max(0, Math.round((Date.now() - riderUpdatedAt) / 1000))}s ago
+                        </span>
+                      )}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="h-2 w-2 rounded-full bg-border" />
+                    Waiting for rider location…
+                  </p>
+                )}
                 <DeliveryMap
                   riderLat={riderPos?.lat ?? null}
                   riderLng={riderPos?.lng ?? null}
