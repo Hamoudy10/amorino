@@ -6,10 +6,11 @@ import { adminOrderUpdateSchema, riderAssignmentSchema } from "@/lib/validators"
 import { ok, fail, serverError, unauthorized, forbidden } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 import { updateOrderStatus, assignRider } from "@/lib/orders";
+import type { OrderStatus } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-const FINAL_STATUSES = ["delivered", "picked_up", "cancelled"] as const;
+const FINAL_STATUSES: OrderStatus[] = ["delivered", "picked_up", "cancelled"];
 
 export async function GET(req: NextRequest) {
   try {
