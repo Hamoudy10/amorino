@@ -37,7 +37,7 @@ interface AnalyticsData {
   topItems: Array<{ name: string; totalSold: number; revenue: number }>;
   paymentSplit: Array<{ label: string; value: number }>;
   orderSplit: Array<{ label: string; value: number }>;
-  riders: Array<{ riderName: string | null; deliveries: number; avgDeliveryMinutes: number | null }>;
+  riders: Array<{ riderId: string; riderName: string | null; riderPhone: string | null; riderEmail: string | null; deliveries: number; avgDeliveryMinutes: number | null }>;
   repeatRate: number;
   rating: { average: number; count: number };
   forecast: {
@@ -400,8 +400,8 @@ export function AnalyticsClient() {
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {data.riders.map((r) => (
-                  <div key={r.riderName ?? "rider"} className="flex items-center justify-between rounded-lg border p-3">
-                    <span className="font-medium">{r.riderName ?? "Unnamed rider"}</span>
+                  <div key={r.riderId ?? r.riderName ?? "rider"} className="flex items-center justify-between rounded-lg border p-3">
+                    <span className="font-medium">{r.riderName ?? r.riderPhone ?? r.riderEmail ?? "Unnamed rider"}</span>
                     <span className="text-muted-foreground">
                       {r.deliveries} deliveries · {r.avgDeliveryMinutes !== null ? `~${r.avgDeliveryMinutes} min avg` : "—"}
                     </span>

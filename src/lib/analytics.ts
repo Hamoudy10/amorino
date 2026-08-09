@@ -184,6 +184,8 @@ export async function getOrderTypeSplit(input: RangeInput = {}): Promise<SplitRo
 export interface RiderPerformanceRow {
   riderId: string;
   riderName: string | null;
+  riderPhone: string | null;
+  riderEmail: string | null;
   deliveries: number;
   avgDeliveryMinutes: number | null;
 }
@@ -194,17 +196,21 @@ export async function getRiderPerformance(input: RangeInput = {}): Promise<Rider
     .select({
       riderId: orders.riderId,
       riderName: users.name,
+      riderPhone: users.phone,
+      riderEmail: users.email,
       deliveries: count(orders.id),
       avgDeliveryMinutes: sql<number | null>`AVG(EXTRACT(EPOCH FROM (${orders.deliveredAt} - ${orders.createdAt}))/60)`,
     })
     .from(orders)
     .leftJoin(users, eq(orders.riderId, users.id))
     .where(and(gte(orders.createdAt, from), eq(orders.status, "delivered")))
-    .groupBy(orders.riderId, users.name)
+    .groupBy(orders.riderId, users.name, users.phone, users.email)
     .orderBy(sql`COUNT(${orders.id}) DESC`);
   return rows.map((r) => ({
     riderId: r.riderId ?? "",
     riderName: r.riderName,
+    riderPhone: r.riderPhone,
+    riderEmail: r.riderEmail,
     deliveries: r.deliveries,
     avgDeliveryMinutes: r.avgDeliveryMinutes === null ? null : Math.round(Number(r.avgDeliveryMinutes)),
   }));
