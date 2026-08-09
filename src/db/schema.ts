@@ -185,6 +185,8 @@ export const reviews = pgTable(
     userId: uuid("user_id").references(() => users.id),
     rating: integer("rating").notNull(),
     comment: text("comment"),
+    reply: text("reply"),
+    repliedAt: timestamp("replied_at"),
     isVisible: boolean("is_visible").default(true),
     createdAt: timestamp("created_at").defaultNow(),
   },

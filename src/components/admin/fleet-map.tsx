@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { GoogleMap, Marker, useJsApiLoader, type Libraries } from "@react-google-maps/api";
-import { Bike, RefreshCw, MapPin } from "lucide-react";
+import { Bike, RefreshCw, MapPin, Flame, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { timeAgo } from "@/lib/utils";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types";
 
-const LIBRARIES: Libraries = ["places", "geometry"];
+const LIBRARIES: Libraries = ["places", "geometry", "visualization"];
 
 interface FleetRider {
   id: string;
@@ -48,6 +48,11 @@ export function FleetMap() {
 
   const [riders, setRiders] = React.useState<FleetRider[] | null>(null);
   const [cafe, setCafe] = React.useState<{ lat: number; lng: number } | null>(null);
+  const [heatmap, setHeatmap] = React.useState<Array<{ lat: number; lng: number }>>([]);
+  const [heatmapOn, setHeatmapOn] = React.useState(false);
+  const [heatmapLoading, setHeatmapLoading] = React.useState(false);
+  const mapRef = React.useRef<google.maps.Map | null>(null);
+  const heatmapLayerRef = React.useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
   const fetchFleet = React.useCallback(async () => {
     try {
@@ -62,6 +67,50 @@ export function FleetMap() {
     }
   }, []);
 
+  const fetchHeatmap = React.useCallback(async () => {
+    setHeatmapLoading(true);
+    try {
+      const res = await fetch("/api/admin/analytics?days=30", { cache: "no-store" });
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.data.heatmap)) {
+        setHeatmap(json.data.heatmap);
+      }
+    } catch {
+      // ignored
+    } finally {
+      setHeatmapLoading(false);
+    }
+  }, []);
+
+  const toggleHeatmap = () => {
+    const next = !heatmapOn;
+    setHeatmapOn(next);
+    if (next) {
+      if (heatmap.length === 0) void fetchHeatmap();
+    } else {
+      heatmapLayerRef.current?.setMap(null);
+      heatmapLayerRef.current = null;
+    }
+  };
+
+  // (Re)create the heatmap layer when toggled on and coords arrive.
+  React.useEffect(() => {
+    if (!heatmapOn || !isLoaded || !mapRef.current) return;
+    if (heatmap.length === 0) return;
+    const data = heatmap.map((p) => new google.maps.LatLng(p.lat, p.lng));
+    if (heatmapLayerRef.current) heatmapLayerRef.current.setMap(null);
+    heatmapLayerRef.current = new google.maps.visualization.HeatmapLayer({
+      data,
+      map: mapRef.current,
+      radius: 28,
+      opacity: 0.55,
+    });
+    return () => {
+      heatmapLayerRef.current?.setMap(null);
+      heatmapLayerRef.current = null;
+    };
+  }, [heatmapOn, isLoaded, heatmap]);
+
   React.useEffect(() => {
     void fetchFleet();
     const interval = setInterval(() => void fetchFleet(), 15_000);
@@ -72,7 +121,7 @@ export function FleetMap() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Live Rider Map</h1>
           <p className="text-sm text-muted-foreground">
@@ -81,9 +130,24 @@ export function FleetMap() {
               : `${moving.length} of ${riders.length} riders sharing location`}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void fetchFleet()}>
-          <RefreshCw className="h-3.5 w-3.5" /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={heatmapOn ? "default" : "outline"}
+            onClick={toggleHeatmap}
+            disabled={heatmapLoading && heatmap.length === 0}
+          >
+            {heatmapLoading && heatmap.length === 0 ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Flame className="h-3.5 w-3.5" />
+            )}
+            Delivery heatmap (30d)
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => void fetchFleet()}>
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </Button>
+        </div>
       </div>
 
       {riders === null ? (
@@ -99,6 +163,12 @@ export function FleetMap() {
               mapContainerClassName="h-96 w-full rounded-lg"
               center={cafe ?? { lat: -4.0435, lng: 39.6682 }}
               zoom={13}
+              onLoad={(m) => {
+                mapRef.current = m;
+              }}
+              onUnmount={() => {
+                mapRef.current = null;
+              }}
             >
               {cafe && (
                 <Marker

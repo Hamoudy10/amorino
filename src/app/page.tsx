@@ -13,6 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { getPopularItems, getPublicMenu } from "@/lib/menu-data";
+import { getHomeReviews } from "@/lib/analytics";
 import { Hero } from "@/components/home/hero";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
 import { Button } from "@/components/ui/button";
@@ -35,8 +36,13 @@ const STEPS = [
 export default async function HomePage() {
   let popular: Awaited<ReturnType<typeof getPopularItems>> = [];
   let categories: Awaited<ReturnType<typeof getPublicMenu>> = [];
+  let reviews: Awaited<ReturnType<typeof getHomeReviews>> = [];
   try {
-    [popular, categories] = await Promise.all([getPopularItems(6), getPublicMenu()]);
+    [popular, categories, reviews] = await Promise.all([
+      getPopularItems(6),
+      getPublicMenu(),
+      getHomeReviews(6),
+    ]);
   } catch (err) {
     console.error("[home] data fetch failed", err);
   }
@@ -168,23 +174,48 @@ export default async function HomePage() {
         <h2 className="mb-6 text-center font-display text-3xl font-bold tracking-tight">
           Loved on the Coast
         </h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            { stars: 5, text: "Best mandi in Mombasa — the chicken just falls off the bone. Delivery was fast and hot!", name: "Ahmed K." },
-            { stars: 5, text: "Their BBQ wings are addictive. Ordering is so easy with M-Pesa and I could track the rider live.", name: "Wanjiru M." },
-            { stars: 5, text: "Amazing shawarma and shakes. The staff are friendly and the coffee is real good.", name: "Fahad O." },
-          ].map((r) => (
-            <div key={r.name} className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="mb-2 flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`h-4 w-4 ${i < r.stars ? "fill-amber-400 text-amber-400" : "text-muted"}`} />
-                ))}
+        {reviews.length === 0 ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              { stars: 5, text: "Best mandi in Mombasa — the chicken just falls off the bone. Delivery was fast and hot!", name: "Ahmed K." },
+              { stars: 5, text: "Their BBQ wings are addictive. Ordering is so easy with M-Pesa and I could track the rider live.", name: "Wanjiru M." },
+              { stars: 5, text: "Amazing shawarma and shakes. The staff are friendly and the coffee is real good.", name: "Fahad O." },
+            ].map((r) => (
+              <div key={r.name} className="rounded-xl border bg-card p-6 shadow-sm">
+                <div className="mb-2 flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`h-4 w-4 ${i < r.stars ? "fill-amber-400 text-amber-400" : "text-muted"}`} />
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">&ldquo;{r.text}&rdquo;</p>
+                <p className="mt-3 text-xs font-semibold">{r.name}</p>
               </div>
-              <p className="text-sm text-muted-foreground">&ldquo;{r.text}&rdquo;</p>
-              <p className="mt-3 text-xs font-semibold">{r.name}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-3">
+            {reviews.map((r) => (
+              <div key={r.id} className="rounded-xl border bg-card p-6 shadow-sm">
+                <div className="mb-2 flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`h-4 w-4 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-muted"}`} />
+                  ))}
+                </div>
+                {r.comment && <p className="text-sm text-muted-foreground">&ldquo;{r.comment}&rdquo;</p>}
+                {r.reply && (
+                  <div className="mt-3 rounded-lg bg-primary/5 p-3">
+                    <p className="text-xs font-semibold text-primary">Amorino Café replied</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">&ldquo;{r.reply}&rdquo;</p>
+                  </div>
+                )}
+                <p className="mt-3 text-xs font-semibold">
+                  {r.reviewerName ?? "Verified customer"}
+                  {r.orderNumber && <span className="ml-1 font-normal text-muted-foreground">· {r.orderNumber}</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* CTA */}

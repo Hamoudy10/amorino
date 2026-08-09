@@ -14,6 +14,7 @@ import {
   Map as MapIcon,
   Zap,
   Wallet,
+  Users,
 } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 
@@ -28,6 +29,7 @@ const NAV = [
   { href: "/admin/map", label: "Live Map", icon: MapIcon },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
+  { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/complaints", label: "Complaints", icon: AlertTriangle },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/jobs", label: "Jobs", icon: Zap },
