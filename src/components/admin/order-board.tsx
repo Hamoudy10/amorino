@@ -328,9 +328,12 @@ export function OrderBoard() {
 
           {ungrouped.length > 0 && (
             <div className="w-72 shrink-0">
-              <div className="mb-2 rounded-lg bg-muted px-3 py-2 text-sm font-semibold">Done / Cancelled</div>
+              <div className="mb-2 flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm font-semibold">
+                <span>Done / Cancelled</span>
+                <Badge variant="secondary">{ungrouped.length}</Badge>
+              </div>
               <div className="space-y-3">
-                {ungrouped.map((order) => (
+                {ungrouped.slice(0, 8).map((order) => (
                   <Card key={order.id}>
                     <CardContent className="space-y-2 py-3 text-sm">
                       <div className="flex items-center justify-between gap-2">
@@ -358,6 +361,11 @@ export function OrderBoard() {
                     </CardContent>
                   </Card>
                 ))}
+                {ungrouped.length > 8 && (
+                  <p className="rounded-lg border border-dashed p-3 text-center text-xs text-muted-foreground">
+                    +{ungrouped.length - 8} more — search by order number for older orders
+                  </p>
+                )}
               </div>
             </div>
           )}

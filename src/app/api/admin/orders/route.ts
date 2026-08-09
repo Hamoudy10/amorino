@@ -1,13 +1,15 @@
 import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { orders, orderItems, users, activityLogs } from "@/db/schema";
-import { and, asc, desc, eq, gte, lte, or, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, or, inArray, notInArray, sql } from "drizzle-orm";
 import { adminOrderUpdateSchema, riderAssignmentSchema } from "@/lib/validators";
 import { ok, fail, serverError, unauthorized, forbidden } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 import { updateOrderStatus, assignRider } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
+
+const FINAL_STATUSES = ["delivered", "picked_up", "cancelled"] as const;
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +24,13 @@ export async function GET(req: NextRequest) {
     const to = params.get("to");
 
     const conditions = [];
-    if (status && status !== "all") conditions.push(eq(orders.status, status as never));
+    // "active" (default) = all non-terminal orders — the kanban only ever
+    // shows work in progress, so the board never grows without bound.
+    if (!status || status === "active") {
+      conditions.push(notInArray(orders.status, FINAL_STATUSES));
+    } else if (status !== "all") {
+      conditions.push(eq(orders.status, status as never));
+    }
     if (type && type !== "all") conditions.push(eq(orders.type, type as never));
     if (from) conditions.push(gte(orders.createdAt, new Date(from)));
     if (to) conditions.push(lte(orders.createdAt, new Date(to)));
@@ -45,7 +53,7 @@ export async function GET(req: NextRequest) {
       .leftJoin(users, eq(orders.riderId, users.id))
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(orders.createdAt))
-      .limit(100);
+      .limit(Math.min(100, Math.max(1, Number(params.get("limit") ?? 100))));
 
     const items = rows.length
       ? await db
