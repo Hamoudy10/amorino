@@ -22,7 +22,7 @@ export function TrackLookup() {
       setError("Enter a valid order number, e.g. AMR-000123");
       return;
     }
-    if (!/^(\+?254|0)?[17][0-9]{8}$/.test(phone.trim())) {
+    if (!/^(\+?254|0)?[0-9]{9}$/.test(phone.trim())) {
       setError("Enter the phone number used when ordering (e.g. 0712345678)");
       return;
     }

@@ -32,7 +32,7 @@ const PLACES_LIBRARIES: Libraries = ["places"];
 
 function maskPhone(phone: string): string {
   const p = normalizePhone(phone);
-  if (!/^254[17][0-9]{8}$/.test(p)) return phone;
+  if (!/^254[0-9]{9}$/.test(p)) return phone;
   return `0${p.slice(3, 5)} ${p.slice(5, 7)}**${p.slice(9)}`;
 }
 
@@ -191,8 +191,12 @@ export default function CheckoutPage() {
       return;
     }
     const phone = normalizePhone(form.customerPhone);
-    if (!/^254[17][0-9]{8}$/.test(phone)) {
+    if (!/^254[0-9]{9}$/.test(phone)) {
       toast.error("Enter a valid Kenyan phone number (e.g. 0712345678)");
+      return;
+    }
+    if (form.customerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.customerEmail.trim())) {
+      toast.error("Please enter a valid email address");
       return;
     }
     if (form.type === "delivery" && form.deliveryAddress.trim().length < 5) {

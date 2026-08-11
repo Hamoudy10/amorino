@@ -4,7 +4,10 @@ export const phoneSchema = z
   .string()
   .min(10)
   .max(15)
-  .regex(/^(\+?254|0)?[17][0-9]{8}$/, "Enter a valid Kenyan phone number (e.g. 0712345678)");
+  // Kenya: 0XXXXXXXXX or 254XXXXXXXXX — any 9-digit subscriber number
+  // (covers 07x/01x/02x/11x… new prefixes). M-Pesa itself rejects numbers
+  // not on its network, so validation stays format-only.
+  .regex(/^(\+?254|0)?[0-9]{9}$/, "Enter a valid Kenyan phone number (e.g. 0712345678)");
 
 export const orderItemSchema = z.object({
   menuItemId: z.string().uuid(),

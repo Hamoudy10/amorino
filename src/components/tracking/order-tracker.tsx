@@ -27,7 +27,7 @@ import { subscribeToOrder } from "@/lib/realtime";
 
 function maskRiderPhone(phone: string): string {
   const p = normalizePhone(phone);
-  if (!/^254[17][0-9]{8}$/.test(p)) return phone;
+  if (!/^254[0-9]{9}$/.test(p)) return phone;
   return `0${p.slice(3, 5)}***${p.slice(9)}`;
 }
 

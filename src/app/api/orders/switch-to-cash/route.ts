@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const orderNumber = String(body?.orderNumber ?? "").trim();
     const phone = normalizePhone(String(body?.phone ?? ""));
 
-    if (!/^AMR-\d{6}$/.test(orderNumber) || !/^254[17][0-9]{8}$/.test(phone)) {
+    if (!/^AMR-\d{6}$/.test(orderNumber) || !/^254[0-9]{9}$/.test(phone)) {
       return fail("Invalid order or phone", 400);
     }
 

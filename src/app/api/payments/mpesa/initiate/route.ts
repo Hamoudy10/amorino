@@ -28,7 +28,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     const parsed = mpesaInitiateSchema.safeParse(body);
     if (!parsed.success) {
-      return fail("Invalid payment request", 400, parsed.error.flatten());
+      const firstIssue = parsed.error.issues[0];
+      return fail(
+        firstIssue ? `${firstIssue.path.join(".") || "Request"}: ${firstIssue.message}` : "Invalid payment request",
+        400,
+        parsed.error.flatten()
+      );
     }
 
     // Extra guard: max 3 STK pushes per phone per minute (prevents STK spam).

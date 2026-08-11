@@ -17,7 +17,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     const parsed = createOrderSchema.safeParse(body);
     if (!parsed.success) {
-      return fail("Invalid order data", 400, parsed.error.flatten());
+      const firstIssue = parsed.error.issues[0];
+      const message = firstIssue
+        ? `${firstIssue.path.join(".") || "Order"}: ${firstIssue.message}`
+        : "Invalid order data";
+      return fail(message, 400, parsed.error.flatten());
     }
 
     const session = await getSessionUser();

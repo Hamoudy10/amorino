@@ -50,7 +50,7 @@ export function ComplaintForm() {
       toast.error("Please describe the problem (at least 5 characters)");
       return;
     }
-    if (!/^(\+?254|0)?[17][0-9]{8}$/.test(phone.trim())) {
+    if (!/^(\+?254|0)?[0-9]{9}$/.test(phone.trim())) {
       toast.error("Enter a valid phone number so we can reach you");
       return;
     }
