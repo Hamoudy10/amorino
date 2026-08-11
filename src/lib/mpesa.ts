@@ -26,6 +26,21 @@ export async function getAccessToken(): Promise<string> {
   return cachedToken.token;
 }
 
+/** Reads the Daraja error payload so failures are diagnosable. */
+function darajaError(err: unknown): string {
+  const e = err as { response?: { status?: number; data?: unknown }; message?: string };
+  if (e?.response) {
+    let detail = "";
+    try {
+      detail = JSON.stringify(e.response.data);
+    } catch {
+      detail = String(e.response.data);
+    }
+    return `Daraja ${e.response.status ?? ""}: ${detail || e.message || "request failed"}`.trim();
+  }
+  return e?.message ?? "Daraja request failed";
+}
+
 export function generatePassword(shortcode: string, passkey: string, timestamp: string): string {
   return Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64");
 }
@@ -97,15 +112,19 @@ export async function initiateStkPush(params: StkPushParams): Promise<StkPushRes
     TransactionDesc: (params.transactionDesc ?? `Payment for ${params.accountReference}`).slice(0, 20),
   };
 
-  const res = await axios.post<StkPushResponse>(
-    `${BASE_URL}/mpesa/stkpush/v1/processrequest`,
-    payload,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 20_000,
-    }
-  );
-  return res.data;
+  try {
+    const res = await axios.post<StkPushResponse>(
+      `${BASE_URL}/mpesa/stkpush/v1/processrequest`,
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 20_000,
+      }
+    );
+    return res.data;
+  } catch (err) {
+    throw new Error(darajaError(err));
+  }
 }
 
 export interface QueryStkResponse {
@@ -129,15 +148,19 @@ export async function queryStkStatus(checkoutRequestId: string): Promise<QuerySt
     Timestamp: timestamp,
     CheckoutRequestID: checkoutRequestId,
   };
-  const res = await axios.post<QueryStkResponse>(
-    `${BASE_URL}/mpesa/stkpushquery/v1/query`,
-    payload,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 15_000,
-    }
-  );
-  return res.data;
+  try {
+    const res = await axios.post<QueryStkResponse>(
+      `${BASE_URL}/mpesa/stkpushquery/v1/query`,
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15_000,
+      }
+    );
+    return res.data;
+  } catch (err) {
+    throw new Error(darajaError(err));
+  }
 }
 
 export interface StkCallbackBody {
