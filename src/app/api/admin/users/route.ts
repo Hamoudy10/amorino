@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { users, orders } from "@/db/schema";
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { ok, fail, serverError, unauthorized } from "@/lib/api";
-import { requireRole } from "@/lib/auth";
+import { requireRole, setUserRole, type UserRole } from "@/lib/auth";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
 const lockSchema = z.object({
   userId: z.string().uuid(),
   isActive: z.boolean(),
+});
+
+const roleSchema = z.object({
+  userId: z.string().uuid(),
+  role: z.enum(["customer", "rider", "admin"]),
 });
 
 const deleteSchema = z.object({ userId: z.string().uuid() });
@@ -118,6 +123,35 @@ export async function PATCH(req: NextRequest) {
       .returning();
 
     return ok({ ...updated, locked: !updated.isActive });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+/** Change a user's role (owner only). New role applies to Clerk + DB. */
+export async function PUT(req: NextRequest) {
+  try {
+    const user = await requireRole("owner");
+    if (!user) return unauthorized("Owner role required");
+
+    const body = await req.json().catch(() => null);
+    const parsed = roleSchema.safeParse(body);
+    if (!parsed.success) return fail("Invalid request", 400, parsed.error.flatten());
+
+    const [target] = await db.select().from(users).where(eq(users.id, parsed.data.userId)).limit(1);
+    if (!target) return fail("User not found", 404);
+    if (target.role === "owner") return fail("Owner accounts cannot be re-rolled", 403);
+
+    if (target.clerkId) {
+      await setUserRole(target.clerkId, parsed.data.role as UserRole);
+    } else {
+      await db
+        .update(users)
+        .set({ role: parsed.data.role, updatedAt: new Date() })
+        .where(eq(users.id, target.id));
+    }
+
+    return ok({ id: target.id, role: parsed.data.role });
   } catch (err) {
     return serverError(err);
   }

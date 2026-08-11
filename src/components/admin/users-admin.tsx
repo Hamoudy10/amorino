@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useUser } from "@clerk/nextjs";
 import { Search, RefreshCw, Lock, Unlock, Trash2, Loader2, Users as UsersIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +119,30 @@ export function UsersAdmin() {
     }
   };
 
+  const changeRole = async (u: UserRow, role: string) => {
+    setBusyId(u.id);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: u.id, role }),
+      });
+      const json = await res.json();
+      if (!json.ok) {
+        toast.error(json.error ?? "Could not change role");
+        return;
+      }
+      toast.success(`${u.name ?? u.phone ?? u.email} is now ${role}`);
+      await fetchUsers();
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const currentUserRole = useUser().user?.publicMetadata?.role as string | undefined;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -207,7 +232,21 @@ export function UsersAdmin() {
                       )}
                     </td>
                     <td className="px-4 py-2.5">
-                      <Badge variant={ROLE_VARIANT[u.role] ?? "outline"}>{u.role}</Badge>
+                      {currentUserRole === "owner" && u.role !== "owner" ? (
+                        <select
+                          value={u.role}
+                          disabled={busyId === u.id}
+                          onChange={(e) => void changeRole(u, e.target.value)}
+                          className="h-7 rounded-md border bg-background px-2 text-xs"
+                          aria-label={`Change role for ${u.name ?? u.email ?? u.id}`}
+                        >
+                          <option value="customer">customer</option>
+                          <option value="rider">rider</option>
+                          <option value="admin">admin</option>
+                        </select>
+                      ) : (
+                        <Badge variant={ROLE_VARIANT[u.role] ?? "outline"}>{u.role}</Badge>
+                      )}
                     </td>
                     <td className="px-4 py-2.5">
                       <Badge variant={u.isActive ? "success" : "destructive"}>
