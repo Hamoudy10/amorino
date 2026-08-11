@@ -54,6 +54,7 @@ export default function CheckoutPage() {
   const [orderNumber, setOrderNumber] = React.useState<string>("");
   const [checkoutRequestId, setCheckoutRequestId] = React.useState<string>("");
   const [errorMsg, setErrorMsg] = React.useState<string>("");
+  const [paymentBlocked, setPaymentBlocked] = React.useState<"cancelled" | "timeout" | "failed" | null>(null);
 
   const [form, setForm] = React.useState({
     customerName: "",
@@ -278,13 +279,41 @@ export default function CheckoutPage() {
         clear();
         setTimeout(() => router.push(`/track/${orderNumber}`), 1200);
       } else if (json.data.status === "failed") {
+        // Distinguish "user dismissed the push" from a real failure.
+        setPaymentBlocked(json.data.cancelled ? "cancelled" : json.data.timedOut ? "timeout" : "failed");
         setStep("error");
-        setErrorMsg("Payment failed. You can retry from the order tracking page.");
       } else {
         setTimeout(() => void pollPayment(checkoutId), 4000);
       }
     } catch {
       setTimeout(() => void pollPayment(checkoutId), 4000);
+    }
+  };
+
+  // Re-sends the STK push for the SAME order (never creates a duplicate).
+  const retryPayment = async () => {
+    if (!orderNumber) return;
+    setSwitchingToCash(true);
+    try {
+      const payRes = await fetch("/api/payments/mpesa/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderNumber, phone: form.customerPhone.trim() }),
+      });
+      const payJson = await payRes.json();
+      if (!payJson.ok) {
+        setStep("error");
+        setErrorMsg(payJson.error ?? "Could not start M-Pesa payment");
+        return;
+      }
+      setCheckoutRequestId(payJson.data.checkoutRequestId);
+      setPaymentBlocked(null);
+      setStep("stk");
+      void pollPayment(payJson.data.checkoutRequestId);
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+    } finally {
+      setSwitchingToCash(false);
     }
   };
 
@@ -324,7 +353,7 @@ export default function CheckoutPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      void submit();
+                      void retryPayment();
                     }}
                   >
                     Try again
@@ -355,7 +384,57 @@ export default function CheckoutPage() {
                 </p>
               </>
             )}
-            {step === "error" && (
+            {step === "error" && paymentBlocked && (
+              <>
+                {paymentBlocked === "cancelled" ? (
+                  <>
+                    <XCircle className="h-10 w-10 text-destructive" />
+                    <h2 className="text-xl font-bold">You did not proceed with the M-Pesa push</h2>
+                    <p className="text-sm text-muted-foreground">
+                      The payment request was cancelled on your phone. Your order is saved — nothing
+                      was charged. Choose what to do next:
+                    </p>
+                  </>
+                ) : paymentBlocked === "timeout" ? (
+                  <>
+                    <XCircle className="h-10 w-10 text-destructive" />
+                    <h2 className="text-xl font-bold">The M-Pesa push expired</h2>
+                    <p className="text-sm text-muted-foreground">
+                      The payment request timed out before it was approved. Nothing was charged.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-10 w-10 text-destructive" />
+                    <h2 className="text-xl font-bold">Payment failed</h2>
+                    <p className="text-sm text-muted-foreground">{errorMsg}</p>
+                  </>
+                )}
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button onClick={() => void retryPayment()} disabled={switchingToCash}>
+                    {switchingToCash && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Try the M-Pesa push again
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => void switchToCash()}
+                    disabled={switchingToCash}
+                  >
+                    {switchingToCash && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Pay cash on delivery
+                  </Button>
+                  {orderNumber && (
+                    <Button asChild variant="outline">
+                      <Link href={`/track/${orderNumber}`}>Track order</Link>
+                    </Button>
+                  )}
+                </div>
+                <p className="max-w-xs text-xs text-muted-foreground">
+                  Note: if you do nothing, this order will not appear in our kitchen queue.
+                </p>
+              </>
+            )}
+            {step === "error" && !paymentBlocked && (
               <>
                 <XCircle className="h-10 w-10 text-destructive" />
                 <h2 className="text-xl font-bold">Something went wrong</h2>

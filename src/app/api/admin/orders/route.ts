@@ -10,7 +10,7 @@ import type { OrderStatus } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-const FINAL_STATUSES: OrderStatus[] = ["delivered", "picked_up", "cancelled"];
+const FINAL_STATUSES: OrderStatus[] = ["pending_payment", "delivered", "picked_up", "cancelled"];
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,8 +25,9 @@ export async function GET(req: NextRequest) {
     const to = params.get("to");
 
     const conditions = [];
-    // "active" (default) = all non-terminal orders — the kanban only ever
-    // shows work in progress, so the board never grows without bound.
+    // "active" (default) = paid orders still in progress. Unpaid M-Pesa
+    // orders (pending_payment) stay hidden until the customer pays or
+    // switches to cash — failed payments never clutter the board.
     if (!status || status === "active") {
       conditions.push(notInArray(orders.status, FINAL_STATUSES));
     } else if (status !== "all") {

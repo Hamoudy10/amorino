@@ -74,7 +74,14 @@ export async function GET(req: NextRequest) {
           updatedAt: new Date().toISOString(),
         });
       }
-      return ok({ status: "failed", resultDesc: result.ResultDesc });
+      return ok({
+        status: "failed",
+        resultDesc: result.ResultDesc,
+        // Tell the checkout WHY it failed so it can show the right guidance:
+        // 1032 = the customer dismissed the STK push; 1037 = it timed out.
+        cancelled: result.ResultCode === "1032",
+        timedOut: result.ResultCode === "1037",
+      });
     }
 
     return ok({ status: "pending", message: "Waiting for customer to complete payment." });

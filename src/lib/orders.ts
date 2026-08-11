@@ -217,7 +217,9 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  pending_payment: ["paid", "cancelled"],
+  // "confirmed" from pending_payment = payment method switched to cash
+  // (or owner confirms at the counter without an M-Pesa charge).
+  pending_payment: ["paid", "confirmed", "cancelled"],
   paid: ["confirmed", "cancelled"],
   confirmed: ["preparing", "cancelled"],
   preparing: ["ready", "cancelled"],

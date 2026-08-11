@@ -43,7 +43,7 @@ interface Rider {
   email: string | null;
 }
 
-const COLUMNS: OrderStatus[] = ["pending_payment", "paid", "confirmed", "preparing", "ready", "out_for_delivery"];
+const COLUMNS: OrderStatus[] = ["paid", "confirmed", "preparing", "ready", "out_for_delivery"];
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending_payment: ["paid", "cancelled"],
