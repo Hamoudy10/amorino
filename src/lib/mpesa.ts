@@ -79,12 +79,15 @@ export async function initiateStkPush(params: StkPushParams): Promise<StkPushRes
   const formattedPhone = formatMpesaPhone(params.phone);
   const callbackBase = process.env.MPESA_CALLBACK_BASE_URL ?? "http://localhost:3000";
   const callbackUrl = `${callbackBase}/api/payments/mpesa/callback`;
+  // Paybills use CustomerPayBillOnline; Till numbers use CustomerBuyGoodsOnline.
+  const transactionType =
+    process.env.MPESA_TRANSACTION_TYPE ?? "CustomerPayBillOnline";
 
   const payload = {
     BusinessShortCode: process.env.MPESA_SHORTCODE,
     Password: password,
     Timestamp: timestamp,
-    TransactionType: "CustomerPayBillOnline",
+    TransactionType: transactionType,
     Amount: Math.ceil(params.amount),
     PartyA: formattedPhone,
     PartyB: process.env.MPESA_SHORTCODE,
