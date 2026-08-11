@@ -197,7 +197,7 @@ export function AnalyticsClient() {
               { label: `Revenue (${data.range.from} → ${data.range.to})`, value: formatKES(data.summary.revenue) },
               { label: "Active orders right now", value: String(data.summary.activeOrders) },
               { label: "Open complaints", value: String(data.summary.pendingComplaints) },
-              { label: "Average rating", value: data.rating.count > 0 ? `${data.rating.average.toFixed(1)} / 5 (${data.rating.count} reviews)` : "No reviews" },
+              { label: "Average rating (all-time)", value: data.rating.count > 0 ? `${data.rating.average.toFixed(1)} / 5 (${data.rating.count} reviews)` : "No reviews" },
               { label: "Repeat rate (range)", value: `${data.repeatRate}%` },
               { label: "Avg order value (range)", value: formatKES(data.summary.avgOrderValue) },
               { label: "Forecast · next 7 days", value: formatKES(forecastTotal) },
