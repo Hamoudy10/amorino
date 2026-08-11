@@ -92,7 +92,7 @@ export async function initiateStkPush(params: StkPushParams): Promise<StkPushRes
     timestamp
   );
   const formattedPhone = formatMpesaPhone(params.phone);
-  const callbackBase = process.env.MPESA_CALLBACK_BASE_URL ?? "http://localhost:3000";
+  const callbackBase = (process.env.MPESA_CALLBACK_BASE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
   const callbackUrl = `${callbackBase}/api/payments/mpesa/callback`;
   // Paybills use CustomerPayBillOnline; Till numbers use CustomerBuyGoodsOnline.
   const transactionType =
