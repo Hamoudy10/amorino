@@ -87,19 +87,23 @@ export async function POST(req: NextRequest) {
     let riderName = parsed.data.name ?? null;
     let riderPhone = parsed.data.phone ?? null;
 
-    if (!clerkId) {
-      // Resolve the Clerk account by email/phone so the owner never has to
-      // open the Clerk dashboard.
-      const found = await findClerkUser({ email: parsed.data.email, phone: parsed.data.phone });
-      if (!found) {
-        return fail(
-          "No account found for that email — the rider must sign up on the site first",
-          404
-        );
-      }
+    // Resolve the Clerk account (by email/phone, or directly by clerkId) so
+    // the owner never has to open the Clerk dashboard — and always pull the
+    // account's real name so riders are never created nameless.
+    const found = await findClerkUser({
+      email: parsed.data.email,
+      phone: parsed.data.phone,
+      clerkId: parsed.data.clerkId,
+    });
+    if (found) {
       clerkId = found.id;
       riderName = riderName ?? found.name;
       riderPhone = riderPhone ?? found.phone;
+    } else if (!clerkId) {
+      return fail(
+        "No account found for that email — the rider must sign up on the site first",
+        404
+      );
     }
 
     await upsertUserFromClerk({

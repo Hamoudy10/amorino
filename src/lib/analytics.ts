@@ -91,6 +91,24 @@ export async function getTodaySummary(): Promise<TodaySummary> {
   };
 }
 
+/** Orders/revenue for an arbitrary range (drives the analytics summary cards). */
+export async function getRangeSummary(input: RangeInput): Promise<{ totalOrders: number; revenue: number; avgOrderValue: number }> {
+  const { from, to } = resolveRange(input);
+  const [row] = await db
+    .select({
+      totalOrders: count(orders.id),
+      revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} NOT IN ('cancelled','pending_payment') THEN ${orders.total}::numeric ELSE 0 END), 0)`,
+      avgOrderValue: sql<number>`COALESCE(AVG(CASE WHEN ${orders.status} NOT IN ('cancelled','pending_payment') THEN ${orders.total}::numeric END), 0)`,
+    })
+    .from(orders)
+    .where(and(gte(orders.createdAt, from), lte(orders.createdAt, to)));
+  return {
+    totalOrders: row?.totalOrders ?? 0,
+    revenue: Number(row?.revenue ?? 0),
+    avgOrderValue: Number(row?.avgOrderValue ?? 0),
+  };
+}
+
 export interface DailySalesRow {
   date: string;
   totalOrders: number;

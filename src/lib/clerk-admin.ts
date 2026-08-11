@@ -3,32 +3,45 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 /**
- * Looks up a Clerk user by email (or phone) using the Backend API — lets the
- * admin add riders without leaving the app to copy a Clerk user ID.
+ * Looks up a Clerk user by email, phone, or clerkId using the Backend API —
+ * lets the admin add riders without leaving the app to copy a Clerk user ID.
+ * Always prefers the account's real name so riders never end up nameless.
  */
 export async function findClerkUser(
-  query: { email?: string; phone?: string }
+  query: { email?: string; phone?: string; clerkId?: string }
 ): Promise<{ id: string; name: string | null; phone: string | null } | null> {
   const secret = process.env.CLERK_SECRET_KEY;
   if (!secret) return null;
 
-  const params = new URLSearchParams();
-  if (query.email) params.set("email_address", query.email);
-  if (query.phone) params.set("phone_number", query.phone);
-  if (params.size === 0) return null;
-
-  const res = await fetch(`https://api.clerk.com/v1/users?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${secret}` },
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`Clerk lookup failed (${res.status})`);
-
-  const list = (await res.json()) as Array<{
+  let list: Array<{
     id: string;
     first_name?: string | null;
     last_name?: string | null;
     phone_numbers?: Array<{ phone_number: string }>;
   }>;
+
+  if (query.clerkId) {
+    const res = await fetch(`https://api.clerk.com/v1/users/${encodeURIComponent(query.clerkId)}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+      cache: "no-store",
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Clerk lookup failed (${res.status})`);
+    list = [await res.json()];
+  } else {
+    const params = new URLSearchParams();
+    if (query.email) params.set("email_address", query.email);
+    if (query.phone) params.set("phone_number", query.phone);
+    if (params.size === 0) return null;
+
+    const res = await fetch(`https://api.clerk.com/v1/users?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Clerk lookup failed (${res.status})`);
+    list = await res.json();
+  }
+
   if (!Array.isArray(list) || list.length === 0) return null;
 
   const u = list[0];

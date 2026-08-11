@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import {
+  getRangeSummary,
   getTodaySummary,
   getSalesByDay,
   getRevenueByHour,
@@ -50,9 +51,10 @@ export async function GET(req: NextRequest) {
     const cached = await cacheGet<unknown>(cacheKey);
     if (cached) return ok(cached);
 
-    const [summary, sales, hourly, topItems, paymentSplit, orderSplit, riders, repeatRate, rating, forecast, menuMatrix, heatmap] =
+    const [today, rangeSummary, sales, hourly, topItems, paymentSplit, orderSplit, riders, repeatRate, rating, forecast, menuMatrix, heatmap] =
       await Promise.all([
         getTodaySummary(),
+        getRangeSummary({ days, from, to }),
         getSalesByDay({ days, from, to }),
         getRevenueByHour({ days, from, to }),
         getTopItems({ days, from, to }),
@@ -67,7 +69,15 @@ export async function GET(req: NextRequest) {
       ]);
 
     const data = {
-      summary,
+      summary: {
+        // Range-driven headline numbers…
+        totalOrders: rangeSummary.totalOrders,
+        revenue: rangeSummary.revenue,
+        avgOrderValue: rangeSummary.avgOrderValue,
+        // …plus live operational counts (always "right now").
+        activeOrders: today.activeOrders,
+        pendingComplaints: today.pendingComplaints,
+      },
       sales,
       hourly,
       topItems,
