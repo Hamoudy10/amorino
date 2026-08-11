@@ -1,7 +1,7 @@
 # Amorino Café — System Documentation
 
 Complete system context for the Amorino Café online ordering platform.
-**Site**: https://amorino-five.vercel.app · **Repo**: https://github.com/Hamoudy10/amorino
+**Site**: https://amorinocafe.vercel.app · **Repo**: https://github.com/Hamoudy10/amorino
 
 ---
 
@@ -449,7 +449,7 @@ npm run db:studio      # Drizzle Studio UI
 
 ## 20. Deployment (Vercel)
 
-- Git-connected to GitHub (`main` branch auto-deploys). Production URL: `https://amorino-five.vercel.app`.
+- Git-connected to GitHub (`main` branch auto-deploys). Production URL: `https://amorinocafe.vercel.app`.
 - Set region **Frankfurt (`fra1`)** in project settings (lowest latency from Kenya); DB region `eu-central-1`.
 - Env vars: see §18 — after changing them, **Redeploy**.
 - Middleware must stay at `src/middleware.ts` (Next 16 requirement).
@@ -484,3 +484,4 @@ npm run db:studio      # Drizzle Studio UI
 4. **Roles**: sign up (email), set `{"role":"owner"}` in Clerk (or use the DB fallback), add a rider via Admin → Riders (email lookup) → rider signs in → `/rider`.
 5. **Live tracking**: delivery order → out for delivery → rider toggles Share live location (phone, permission granted) → blue dot on customer map + admin Live Map within 30 s; verify `rider_locations` rows in the DB.
 6. **Diagnostics**: `/api/auth/me` shows session role; `/api/admin/riders` shows riders/candidates/last-seen; Vercel Runtime Logs show server errors; the `notifications` table records every send attempt.
+

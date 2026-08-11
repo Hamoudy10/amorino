@@ -44,7 +44,7 @@ export async function handleReviewRequest(payload: ReviewRequestPayload) {
     .limit(1);
   if (existing.length > 0) return; // already reviewed
 
-  const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://amorino-five.vercel.app"}/review/${payload.orderNumber}`;
+  const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://amorinocafe.vercel.app"}/review/${payload.orderNumber}`;
   await sendWhatsAppTemplate(payload.customerPhone, "review_request", [
     payload.orderNumber,
     reviewUrl,
@@ -71,7 +71,7 @@ export async function handleAbandonedPayment(payload: AbandonedPaymentPayload) {
   const [order] = await db.select().from(orders).where(eq(orders.id, payload.orderId)).limit(1);
   if (!order || order.status !== "pending_payment") return; // resolved meanwhile
 
-  const trackUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://amorino-five.vercel.app"}/track/${payload.orderNumber}`;
+  const trackUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://amorinocafe.vercel.app"}/track/${payload.orderNumber}`;
   const message = `Amorino Café: your order ${payload.orderNumber} is still waiting for payment. Complete it here: ${trackUrl}`;
   await sendSms(payload.customerPhone, message);
   await logNotification({

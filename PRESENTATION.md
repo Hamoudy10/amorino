@@ -106,3 +106,4 @@ volume. A Kenyan **VPS (~KES 750/mo)** gives "server" control without hardware r
 4. Verify Google Maps key on Vercel + enable Places/Directions/Visualization APIs
 5. Approve the first real reviews → homepage shows them
 6. Optional: Supabase Pro, custom domain, Sentry, staging
+

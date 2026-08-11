@@ -137,3 +137,4 @@ npm install next-intl @react-email/components react-email firebase firebase-admi
 - Update this document whenever a roadmap item ships (flip status to **DONE**).
 - Owner actions needed (operational, no code): WhatsApp/Meta approval, AT sender ID,
   Resend domain verification, Daraja go-live, Supabase Pro, custom domain, staging.
+
