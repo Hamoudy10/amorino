@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { payments, orders } from "@/db/schema";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { ok, serverError, unauthorized } from "@/lib/api";
 import { requireRole } from "@/lib/auth";
 
@@ -13,6 +13,19 @@ export async function GET(req: NextRequest) {
     if (!user) return unauthorized();
 
     const status = req.nextUrl.searchParams.get("status");
+    const q = req.nextUrl.searchParams.get("q");
+
+    const conditions = [];
+    if (status && status !== "all") conditions.push(eq(payments.status, status as never));
+    if (q) {
+      conditions.push(
+        or(
+          sql`${orders.orderNumber} ILIKE ${`%${q}%`}`,
+          like(payments.phoneNumber, `%${q}%`),
+          like(payments.mpesaReceiptNumber, `%${q}%`)
+        )!
+      );
+    }
 
     const rows = await db
       .select({
@@ -24,7 +37,7 @@ export async function GET(req: NextRequest) {
       })
       .from(payments)
       .leftJoin(orders, eq(payments.orderId, orders.id))
-      .where(status && status !== "all" ? eq(payments.status, status as never) : undefined)
+      .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(payments.createdAt))
       .limit(200);
 

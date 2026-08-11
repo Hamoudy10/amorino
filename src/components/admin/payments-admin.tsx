@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, CheckCircle2, Loader2, Wallet } from "lucide-react";
+import { RefreshCw, CheckCircle2, Loader2, Wallet, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
 import { formatKES, formatDateTime } from "@/lib/utils";
@@ -35,11 +36,15 @@ export function PaymentsAdmin() {
   const [payments, setPayments] = React.useState<PaymentRow[] | null>(null);
   const [totals, setTotals] = React.useState<Record<string, number>>({});
   const [filter, setFilter] = React.useState("all");
+  const [query, setQuery] = React.useState("");
   const [marking, setMarking] = React.useState<string | null>(null);
 
   const fetchPayments = React.useCallback(async () => {
+    const params = new URLSearchParams();
+    if (filter !== "all") params.set("status", filter);
+    if (query.trim()) params.set("q", query.trim());
     try {
-      const res = await fetch(`/api/admin/payments?status=${filter}`, { cache: "no-store" });
+      const res = await fetch(`/api/admin/payments?${params.toString()}`, { cache: "no-store" });
       const json = await res.json();
       if (json.ok) {
         setPayments(json.data.payments);
@@ -48,7 +53,7 @@ export function PaymentsAdmin() {
     } catch {
       // ignored
     }
-  }, [filter]);
+  }, [filter, query]);
 
   React.useEffect(() => {
     void fetchPayments();
@@ -83,7 +88,17 @@ export function PaymentsAdmin() {
           <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
           <p className="text-sm text-muted-foreground">Reconciliation view — all payment rows, receipts and manual override.</p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          <div className="relative mr-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search order #, phone, receipt…"
+              className="h-9 w-56 pl-9"
+              aria-label="Search payments"
+            />
+          </div>
           {["all", "success", "initiated", "failed", "cancelled"].map((s) => (
             <Button
               key={s}
