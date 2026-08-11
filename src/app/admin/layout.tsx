@@ -26,6 +26,7 @@ const NAV = [
   { href: "/admin/payments", label: "Payments", icon: Wallet },
   { href: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
   { href: "/admin/riders", label: "Riders", icon: Bike },
+  { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/map", label: "Live Map", icon: MapIcon },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
